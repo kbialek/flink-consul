@@ -53,6 +53,8 @@ public class ConsulHaServices implements HighAvailabilityServices {
 
 	private static final String JOB_MANAGER_LEADER_PATH = "/job_manager_lock";
 
+	private static final String REST_SERVER_LEADER_PATH = "/rest_server_lock";
+
 	/**
 	 * Consul client to use
 	 */
@@ -115,7 +117,6 @@ public class ConsulHaServices implements HighAvailabilityServices {
 		return new ConsulLeaderElectionService(client, executor, consulSessionActivator.getHolder(), leaderPath);
 	}
 
-
 	@Override
 	public LeaderRetrievalService getResourceManagerLeaderRetriever() {
 		return new ConsulLeaderRetrievalService(client, executor, getLeaderPath() + RESOURCE_MANAGER_LEADER_PATH);
@@ -136,6 +137,17 @@ public class ConsulHaServices implements HighAvailabilityServices {
 	public LeaderElectionService getDispatcherLeaderElectionService() {
 		return new ConsulLeaderElectionService(client, executor, consulSessionActivator.getHolder(),
 			getLeaderPath() + DISPATCHER_LEADER_PATH);
+	}
+
+	@Override
+	public LeaderRetrievalService getWebMonitorLeaderRetriever() {
+		return new ConsulLeaderRetrievalService(client, executor, getLeaderPath() + REST_SERVER_LEADER_PATH);
+	}
+
+	@Override
+	public LeaderElectionService getWebMonitorLeaderElectionService() {
+		return new ConsulLeaderElectionService(client, executor, consulSessionActivator.getHolder(),
+				getLeaderPath() + REST_SERVER_LEADER_PATH);
 	}
 
 	@Override
