@@ -88,7 +88,7 @@ final class ConsulCompletedCheckpointStore implements CompletedCheckpointStore {
 			} while (attempts-- > 0 && (
 				prevCheckpoints == null
 					|| checkpoints.size() != stateHandles.size()
-					|| !checkpoints.equals(prevCheckpoints)));
+                    /*|| !checkpoints.equals(prevCheckpoints)*/));
 
 			if (attempts > 0 && checkpoints != null) {
 				completedCheckpoints.clear();

@@ -27,6 +27,7 @@ import org.junit.Test;
 import java.io.*;
 import java.util.Iterator;
 import java.util.List;
+import java.util.UUID;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
@@ -116,7 +117,7 @@ public class ConsulCompletedCheckpointStoreTest {
 
         CompletedCheckpoint latestCheckpoint = newStore.getLatestCheckpoint();
         assertNotNull(latestCheckpoint);
-        assertEquals(checkpoint, latestCheckpoint);
+        assertEquals(checkpoint.getExternalPointer(), latestCheckpoint.getExternalPointer());
         assertNotSame(checkpoint, latestCheckpoint);
     }
 
@@ -147,7 +148,7 @@ public class ConsulCompletedCheckpointStoreTest {
 
         CompletedCheckpoint latestCheckpoint = newStore.getLatestCheckpoint();
         assertNotNull(latestCheckpoint);
-        assertEquals(checkpoint, latestCheckpoint);
+        assertEquals(checkpoint.getExternalPointer(), latestCheckpoint.getExternalPointer());
         assertNotSame(checkpoint, latestCheckpoint);
     }
 
@@ -240,9 +241,12 @@ public class ConsulCompletedCheckpointStoreTest {
     }
 
     public static class TestCompletedCheckpointStorageLocation implements CompletedCheckpointStorageLocation {
+
+        private String externalPointer = UUID.randomUUID().toString();
+
         @Override
         public String getExternalPointer() {
-            return "";
+            return externalPointer;
         }
 
         @Override
@@ -253,6 +257,20 @@ public class ConsulCompletedCheckpointStoreTest {
         @Override
         public void disposeStorageLocation() throws IOException {
 
+        }
+
+        @Override
+        public int hashCode() {
+            return externalPointer.hashCode();
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (obj instanceof TestCompletedCheckpointStorageLocation) {
+                TestCompletedCheckpointStorageLocation other = (TestCompletedCheckpointStorageLocation) obj;
+                return this.externalPointer.equals(other.externalPointer);
+            }
+            return false;
         }
     }
 }
