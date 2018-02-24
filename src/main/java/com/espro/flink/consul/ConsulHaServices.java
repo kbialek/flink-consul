@@ -47,13 +47,13 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  */
 public class ConsulHaServices implements HighAvailabilityServices {
 
-	private static final String RESOURCE_MANAGER_LEADER_PATH = "/resource_manager_lock";
+	private static final String RESOURCE_MANAGER_LEADER_PATH = "resource_manager_lock";
 
-	private static final String DISPATCHER_LEADER_PATH = "/dispatcher_lock";
+	private static final String DISPATCHER_LEADER_PATH = "dispatcher_lock";
 
-	private static final String JOB_MANAGER_LEADER_PATH = "/job_manager_lock";
+	private static final String JOB_MANAGER_LEADER_PATH = "job_manager_lock";
 
-	private static final String REST_SERVER_LEADER_PATH = "/rest_server_lock";
+	private static final String REST_SERVER_LEADER_PATH = "rest_server_lock";
 
 	/**
 	 * Consul client to use
