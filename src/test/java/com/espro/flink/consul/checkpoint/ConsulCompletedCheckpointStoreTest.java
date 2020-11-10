@@ -1,15 +1,29 @@
 package com.espro.flink.consul.checkpoint;
 
-import com.ecwid.consul.v1.ConsulClient;
-import com.ecwid.consul.v1.Response;
-import com.ecwid.consul.v1.kv.model.GetBinaryValue;
-import com.pszymczyk.consul.ConsulProcess;
-import com.pszymczyk.consul.ConsulStarterBuilder;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
+import java.util.Iterator;
+import java.util.List;
+import java.util.UUID;
+
 import org.apache.flink.api.common.JobID;
+import org.apache.flink.api.common.JobStatus;
+import org.apache.flink.core.fs.Path;
 import org.apache.flink.runtime.checkpoint.CheckpointProperties;
 import org.apache.flink.runtime.checkpoint.CheckpointRetentionPolicy;
 import org.apache.flink.runtime.checkpoint.CompletedCheckpoint;
-import org.apache.flink.runtime.jobgraph.JobStatus;
 import org.apache.flink.runtime.state.CompletedCheckpointStorageLocation;
 import org.apache.flink.runtime.state.RetrievableStateHandle;
 import org.apache.flink.runtime.state.StreamStateHandle;
@@ -24,14 +38,11 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.*;
-import java.util.Iterator;
-import java.util.List;
-import java.util.UUID;
-
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import com.ecwid.consul.v1.ConsulClient;
+import com.ecwid.consul.v1.Response;
+import com.ecwid.consul.v1.kv.model.GetBinaryValue;
+import com.pszymczyk.consul.ConsulProcess;
+import com.pszymczyk.consul.ConsulStarterBuilder;
 
 public class ConsulCompletedCheckpointStoreTest {
 
@@ -49,7 +60,7 @@ public class ConsulCompletedCheckpointStoreTest {
                 .start();
         client = new ConsulClient(String.format("localhost:%d", consul.getHttpPort()));
         tempDir = Files.createTempDir();
-        storage = new FileSystemStateStorageHelper<>(tempDir.getPath(), "cp");
+        storage = new FileSystemStateStorageHelper<>(new Path(tempDir.getPath()), "cp");
     }
 
     @After
@@ -78,7 +89,7 @@ public class ConsulCompletedCheckpointStoreTest {
 
         assertEquals(1, store.getNumberOfRetainedCheckpoints());
 
-        CompletedCheckpoint latestCheckpoint = store.getLatestCheckpoint();
+        CompletedCheckpoint latestCheckpoint = store.getLatestCheckpoint(false);
         assertNotNull(latestCheckpoint);
         assertEquals(checkpoint, latestCheckpoint);
         assertSame(checkpoint, latestCheckpoint);
@@ -115,7 +126,7 @@ public class ConsulCompletedCheckpointStoreTest {
         ConsulCompletedCheckpointStore newStore = new ConsulCompletedCheckpointStore(client, checkpointsPath, jobID, 1, storage);
         newStore.recover();
 
-        CompletedCheckpoint latestCheckpoint = newStore.getLatestCheckpoint();
+        CompletedCheckpoint latestCheckpoint = newStore.getLatestCheckpoint(false);
         assertNotNull(latestCheckpoint);
         assertEquals(checkpoint.getExternalPointer(), latestCheckpoint.getExternalPointer());
         assertNotSame(checkpoint, latestCheckpoint);
@@ -146,7 +157,7 @@ public class ConsulCompletedCheckpointStoreTest {
 
         newStore.recover();
 
-        CompletedCheckpoint latestCheckpoint = newStore.getLatestCheckpoint();
+        CompletedCheckpoint latestCheckpoint = newStore.getLatestCheckpoint(false);
         assertNotNull(latestCheckpoint);
         assertEquals(checkpoint.getExternalPointer(), latestCheckpoint.getExternalPointer());
         assertNotSame(checkpoint, latestCheckpoint);
@@ -178,7 +189,7 @@ public class ConsulCompletedCheckpointStoreTest {
         store.addCheckpoint(checkpoint1);
         store.addCheckpoint(checkpoint2);
 
-        CompletedCheckpoint latestCheckpoint = store.getLatestCheckpoint();
+        CompletedCheckpoint latestCheckpoint = store.getLatestCheckpoint(false);
         assertNotNull(latestCheckpoint);
         assertEquals(checkpoint2, latestCheckpoint);
         assertSame(checkpoint2, latestCheckpoint);

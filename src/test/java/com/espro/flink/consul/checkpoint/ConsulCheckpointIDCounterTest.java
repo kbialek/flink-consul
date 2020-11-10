@@ -1,19 +1,20 @@
 package com.espro.flink.consul.checkpoint;
 
-import com.ecwid.consul.v1.ConsulClient;
-import com.pszymczyk.consul.ConsulProcess;
-import com.pszymczyk.consul.ConsulStarterBuilder;
-import com.pszymczyk.consul.LogLevel;
-import org.apache.flink.api.common.JobID;
-import org.apache.flink.runtime.jobgraph.JobStatus;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
-import static org.junit.Assert.assertEquals;
+import org.apache.flink.api.common.JobID;
+import org.apache.flink.api.common.JobStatus;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
+import com.ecwid.consul.v1.ConsulClient;
+import com.pszymczyk.consul.ConsulProcess;
+import com.pszymczyk.consul.ConsulStarterBuilder;
+import com.pszymczyk.consul.LogLevel;
 
 public class ConsulCheckpointIDCounterTest {
 

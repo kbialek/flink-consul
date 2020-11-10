@@ -18,16 +18,17 @@
 
 package com.espro.flink.consul.leader;
 
-import com.ecwid.consul.v1.ConsulClient;
-import com.ecwid.consul.v1.QueryParams;
-import com.ecwid.consul.v1.Response;
-import com.ecwid.consul.v1.kv.model.GetBinaryValue;
+import java.util.concurrent.Executor;
+
 import org.apache.flink.runtime.leaderretrieval.LeaderRetrievalListener;
 import org.apache.flink.util.Preconditions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.Executor;
+import com.ecwid.consul.v1.ConsulClient;
+import com.ecwid.consul.v1.QueryParams;
+import com.ecwid.consul.v1.Response;
+import com.ecwid.consul.v1.kv.model.GetBinaryValue;
 
 final class ConsulLeaderRetriever {
 
@@ -122,7 +123,7 @@ final class ConsulLeaderRetriever {
 
 	private void notifyOnLeaderRetrieved(ConsulLeaderData data) {
 		try {
-			listener.notifyLeaderAddress(data.getAddress(), data.getSessionId());
+            listener.notifyLeaderAddress(data.getAddress(), data.getSessionId());
 		} catch (Exception e) {
 			LOG.error("Listener failed on leader retrieved notification", e);
 		}

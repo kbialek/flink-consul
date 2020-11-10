@@ -1,12 +1,13 @@
 package com.espro.flink.consul.checkpoint;
 
+import org.apache.flink.api.common.JobID;
+import org.apache.flink.api.common.JobStatus;
+import org.apache.flink.runtime.checkpoint.CheckpointIDCounter;
+import org.apache.flink.util.Preconditions;
+
 import com.ecwid.consul.v1.ConsulClient;
 import com.ecwid.consul.v1.kv.model.GetValue;
 import com.ecwid.consul.v1.kv.model.PutParams;
-import org.apache.flink.api.common.JobID;
-import org.apache.flink.runtime.checkpoint.CheckpointIDCounter;
-import org.apache.flink.runtime.jobgraph.JobStatus;
-import org.apache.flink.util.Preconditions;
 
 final class ConsulCheckpointIDCounter implements CheckpointIDCounter {
 
@@ -37,7 +38,7 @@ final class ConsulCheckpointIDCounter implements CheckpointIDCounter {
 	@Override
 	public long getAndIncrement() throws Exception {
 		while (true) {
-			long v = readCounter();
+            long v = get();
 			if (writeCounter(v + 1)) {
 				return v;
 			} else {
@@ -46,20 +47,21 @@ final class ConsulCheckpointIDCounter implements CheckpointIDCounter {
 		}
 	}
 
+    @Override
+    public long get() {
+        GetValue gv = client.getKVValue(counterKey()).getValue();
+        if (gv == null) {
+            index = 0;
+            return 0;
+        } else {
+            index = gv.getModifyIndex();
+            return Long.valueOf(gv.getDecodedValue());
+        }
+    }
+
 	@Override
 	public void setCount(long newId) throws Exception {
 		writeCounter(newId);
-	}
-
-	private long readCounter() {
-		GetValue gv = client.getKVValue(counterKey()).getValue();
-		if (gv == null) {
-			index = 0;
-			return 0;
-		} else {
-			index = gv.getModifyIndex();
-			return Long.valueOf(gv.getDecodedValue());
-		}
 	}
 
 	private boolean writeCounter(long value) {
