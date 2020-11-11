@@ -82,7 +82,6 @@ public final class ConsulSubmittedJobGraphStore implements JobGraphStore {
 
     @Override
     public void releaseJobGraph(JobID jobId) throws Exception {
-        // TODO Auto-generated method stub
-
+        // can be ignored, because no lock is held
     }
 }
