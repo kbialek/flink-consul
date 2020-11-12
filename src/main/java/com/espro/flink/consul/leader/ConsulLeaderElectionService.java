@@ -18,16 +18,17 @@
 
 package com.espro.flink.consul.leader;
 
-import com.ecwid.consul.v1.ConsulClient;
-import com.espro.flink.consul.ConsulSessionHolder;
+import java.util.UUID;
+import java.util.concurrent.Executor;
+
 import org.apache.flink.runtime.leaderelection.LeaderContender;
 import org.apache.flink.runtime.leaderelection.LeaderElectionService;
 import org.apache.flink.util.Preconditions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.UUID;
-import java.util.concurrent.Executor;
+import com.ecwid.consul.v1.ConsulClient;
+import com.espro.flink.consul.ConsulSessionHolder;
 
 /**
  * Leader election service for multiple JobManager. The leading JobManager is elected using
@@ -70,7 +71,7 @@ public class ConsulLeaderElectionService implements LeaderElectionService {
 
 	private final ConsulLeaderLatchListener listener = new ConsulLeaderLatchListener() {
 		@Override
-		public void onLeadershipAcquired(String address, UUID sessionId) {
+        public void onLeadershipAcquired(String address, UUID sessionId) {
 			leaderContender.grantLeadership(sessionId);
 		}
 
@@ -120,8 +121,8 @@ public class ConsulLeaderElectionService implements LeaderElectionService {
 
 			leaderContender = contender;
 
-			leaderLatch = new ConsulLeaderLatch(client, executor, sessionHolder, leaderPath,
-				leaderContender.getAddress(), listener, 10);
+            leaderLatch = new ConsulLeaderLatch(client, executor, sessionHolder, leaderPath,
+                    leaderContender.getDescription(), listener, 10);
 			leaderLatch.start();
 
 			running = true;
@@ -145,14 +146,14 @@ public class ConsulLeaderElectionService implements LeaderElectionService {
 
 	}
 
-	@Override
-	public void confirmLeaderSessionID(UUID leaderSessionID) {
+    @Override
+    public void confirmLeadership(UUID leaderSessionID, String leaderAddress) {
 
-	}
+    }
 
-	@Override
-	public boolean hasLeadership() {
-		return leaderLatch.hasLeadership();
-	}
+    @Override
+    public boolean hasLeadership(UUID leaderSessionId) {
+        return leaderLatch.hasLeadership();
+    }
 
 }

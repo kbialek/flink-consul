@@ -1,24 +1,25 @@
 package com.espro.flink.consul.jobgraph;
 
-import com.ecwid.consul.v1.ConsulClient;
-import com.ecwid.consul.v1.kv.model.GetBinaryValue;
-import org.apache.flink.api.common.JobID;
-import org.apache.flink.runtime.jobmanager.SubmittedJobGraph;
-import org.apache.flink.runtime.jobmanager.SubmittedJobGraphStore;
-import org.apache.flink.util.FlinkException;
-import org.apache.flink.util.InstantiationUtil;
-import org.apache.flink.util.Preconditions;
-
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public final class ConsulSubmittedJobGraphStore implements SubmittedJobGraphStore {
+import org.apache.flink.api.common.JobID;
+import org.apache.flink.runtime.jobgraph.JobGraph;
+import org.apache.flink.runtime.jobmanager.JobGraphStore;
+import org.apache.flink.util.FlinkException;
+import org.apache.flink.util.InstantiationUtil;
+import org.apache.flink.util.Preconditions;
+
+import com.ecwid.consul.v1.ConsulClient;
+import com.ecwid.consul.v1.kv.model.GetBinaryValue;
+
+public final class ConsulSubmittedJobGraphStore implements JobGraphStore {
 
 	private final ConsulClient client;
 	private final String jobgraphsPath;
-	private SubmittedJobGraphListener listener;
+    private JobGraphListener listener;
 
 	public ConsulSubmittedJobGraphStore(ConsulClient client, String jobgraphsPath) {
 		this.client = Preconditions.checkNotNull(client, "client");
@@ -27,7 +28,7 @@ public final class ConsulSubmittedJobGraphStore implements SubmittedJobGraphStor
 	}
 
 	@Override
-	public void start(SubmittedJobGraphListener jobGraphListener) throws Exception {
+	public void start(JobGraphListener jobGraphListener) throws Exception {
 		this.listener = Preconditions.checkNotNull(jobGraphListener, "jobGraphListener");
 	}
 
@@ -37,14 +38,14 @@ public final class ConsulSubmittedJobGraphStore implements SubmittedJobGraphStor
 	}
 
 	@Override
-	public void putJobGraph(SubmittedJobGraph jobGraph) throws Exception {
+	public void putJobGraph(JobGraph jobGraph) throws Exception {
 		byte[] bytes = InstantiationUtil.serializeObject(jobGraph);
-		client.setKVBinaryValue(path(jobGraph.getJobId()), bytes);
-		this.listener.onAddedJobGraph(jobGraph.getJobId());
+        client.setKVBinaryValue(path(jobGraph.getJobID()), bytes);
+        this.listener.onAddedJobGraph(jobGraph.getJobID());
 	}
 
 	@Override
-	public SubmittedJobGraph recoverJobGraph(JobID jobId) throws Exception {
+    public JobGraph recoverJobGraph(JobID jobId) throws Exception {
 		GetBinaryValue value = client.getKVBinaryValue(path(jobId)).getValue();
 		if (value != null) {
 			try {
@@ -58,7 +59,7 @@ public final class ConsulSubmittedJobGraphStore implements SubmittedJobGraphStor
 	}
 
 	@Override
-	public void removeJobGraph(JobID jobId) throws Exception {
+    public void removeJobGraph(JobID jobId) throws Exception {
 		client.deleteKVValue(path(jobId));
 		listener.onRemovedJobGraph(jobId);
 	}
@@ -78,4 +79,9 @@ public final class ConsulSubmittedJobGraphStore implements SubmittedJobGraphStor
 	private String path(JobID jobID) {
 		return jobgraphsPath + jobID.toString();
 	}
+
+    @Override
+    public void releaseJobGraph(JobID jobId) throws Exception {
+        // can be ignored, because no lock is held
+    }
 }

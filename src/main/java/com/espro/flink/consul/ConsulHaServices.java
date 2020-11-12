@@ -18,13 +18,12 @@
 
 package com.espro.flink.consul;
 
-import com.ecwid.consul.v1.ConsulClient;
-import com.espro.flink.consul.checkpoint.ConsulCheckpointRecoveryFactory;
-import com.espro.flink.consul.configuration.ConsulHighAvailabilityOptions;
-import com.espro.flink.consul.jobgraph.ConsulSubmittedJobGraphStore;
-import com.espro.flink.consul.jobregistry.ConsulRunningJobsRegistry;
-import com.espro.flink.consul.leader.ConsulLeaderElectionService;
-import com.espro.flink.consul.leader.ConsulLeaderRetrievalService;
+import static org.apache.flink.util.Preconditions.checkNotNull;
+
+import java.io.IOException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.runtime.blob.BlobStore;
@@ -32,15 +31,17 @@ import org.apache.flink.runtime.blob.BlobStoreService;
 import org.apache.flink.runtime.checkpoint.CheckpointRecoveryFactory;
 import org.apache.flink.runtime.highavailability.HighAvailabilityServices;
 import org.apache.flink.runtime.highavailability.RunningJobsRegistry;
-import org.apache.flink.runtime.jobmanager.SubmittedJobGraphStore;
+import org.apache.flink.runtime.jobmanager.JobGraphStore;
 import org.apache.flink.runtime.leaderelection.LeaderElectionService;
 import org.apache.flink.runtime.leaderretrieval.LeaderRetrievalService;
 
-import java.io.IOException;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
-
-import static org.apache.flink.util.Preconditions.checkNotNull;
+import com.ecwid.consul.v1.ConsulClient;
+import com.espro.flink.consul.checkpoint.ConsulCheckpointRecoveryFactory;
+import com.espro.flink.consul.configuration.ConsulHighAvailabilityOptions;
+import com.espro.flink.consul.jobgraph.ConsulSubmittedJobGraphStore;
+import com.espro.flink.consul.jobregistry.ConsulRunningJobsRegistry;
+import com.espro.flink.consul.leader.ConsulLeaderElectionService;
+import com.espro.flink.consul.leader.ConsulLeaderRetrievalService;
 
 /**
  * An implementation of {@link HighAvailabilityServices} using Hashicorp Consul.
@@ -52,8 +53,6 @@ public class ConsulHaServices implements HighAvailabilityServices {
 	private static final String DISPATCHER_LEADER_PATH = "dispatcher_lock";
 
 	private static final String JOB_MANAGER_LEADER_PATH = "job_manager_lock";
-
-	private static final String REST_SERVER_LEADER_PATH = "rest_server_lock";
 
 	/**
 	 * Consul client to use
@@ -140,24 +139,13 @@ public class ConsulHaServices implements HighAvailabilityServices {
 	}
 
 	@Override
-	public LeaderRetrievalService getWebMonitorLeaderRetriever() {
-		return new ConsulLeaderRetrievalService(client, executor, getLeaderPath() + REST_SERVER_LEADER_PATH);
-	}
-
-	@Override
-	public LeaderElectionService getWebMonitorLeaderElectionService() {
-		return new ConsulLeaderElectionService(client, executor, consulSessionActivator.getHolder(),
-				getLeaderPath() + REST_SERVER_LEADER_PATH);
-	}
-
-	@Override
 	public CheckpointRecoveryFactory getCheckpointRecoveryFactory() {
 		return new ConsulCheckpointRecoveryFactory(client, configuration);
 	}
 
 	@Override
-	public SubmittedJobGraphStore getSubmittedJobGraphStore() throws Exception {
-		return new ConsulSubmittedJobGraphStore(client, jobGraphsPath());
+    public JobGraphStore getJobGraphStore() throws Exception {
+        return new ConsulSubmittedJobGraphStore(client, jobGraphsPath());
 	}
 
 	@Override

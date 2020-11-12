@@ -18,6 +18,13 @@
 
 package com.espro.flink.consul.leader;
 
+import java.util.UUID;
+import java.util.concurrent.Executor;
+
+import org.apache.flink.util.Preconditions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.ecwid.consul.v1.ConsulClient;
 import com.ecwid.consul.v1.OperationException;
 import com.ecwid.consul.v1.QueryParams;
@@ -25,12 +32,6 @@ import com.ecwid.consul.v1.Response;
 import com.ecwid.consul.v1.kv.model.GetBinaryValue;
 import com.ecwid.consul.v1.kv.model.PutParams;
 import com.espro.flink.consul.ConsulSessionHolder;
-import org.apache.flink.util.Preconditions;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.UUID;
-import java.util.concurrent.Executor;
 
 final class ConsulLeaderLatch {
 
@@ -45,7 +46,7 @@ final class ConsulLeaderLatch {
 
 	private final String leaderKey;
 
-	private final String nodeAddress;
+    private final String nodeAddress;
 
 	/**
 	 * SessionID
@@ -80,7 +81,7 @@ final class ConsulLeaderLatch {
 		this.executor = Preconditions.checkNotNull(executor, "executor");
 		this.sessionHolder = Preconditions.checkNotNull(sessionHolder, "sessionHolder");
 		this.leaderKey = Preconditions.checkNotNull(leaderKey, "leaderKey");
-		this.nodeAddress = Preconditions.checkNotNull(nodeAddress, "nodeAddress");
+        this.nodeAddress = Preconditions.checkNotNull(nodeAddress, "nodeAddress");
 		this.listener = Preconditions.checkNotNull(listener, "listener");
 		this.waitTime = waitTime;
 	}
@@ -113,7 +114,7 @@ final class ConsulLeaderLatch {
 						LOG.info("No leader elected. Current node is trying to register");
 						Boolean success = writeLeaderKey();
 						if (success) {
-							leadershipAcquired(ConsulLeaderData.from(nodeAddress, flinkSessionId));
+                            leadershipAcquired(ConsulLeaderData.from(nodeAddress, flinkSessionId));
 						} else {
 							leadershipRevoked();
 						}
@@ -149,7 +150,7 @@ final class ConsulLeaderLatch {
 		PutParams putParams = new PutParams();
 		putParams.setAcquireSession(sessionHolder.getSessionId());
 		try {
-			ConsulLeaderData data = new ConsulLeaderData(nodeAddress, flinkSessionId);
+            ConsulLeaderData data = new ConsulLeaderData(nodeAddress, flinkSessionId);
 			return client.setKVBinaryValue(leaderKey, data.toBytes(), putParams).getValue();
 		} catch (OperationException ex) {
 			return false;
@@ -184,7 +185,7 @@ final class ConsulLeaderLatch {
 
 	private void notifyOnLeadershipAcquired(ConsulLeaderData data) {
 		try {
-			listener.onLeadershipAcquired(data.getAddress(), data.getSessionId());
+            listener.onLeadershipAcquired(data.getAddress(), data.getSessionId());
 		} catch (Exception e) {
 			LOG.error("Listener failed on leadership acquired notification", e);
 		}

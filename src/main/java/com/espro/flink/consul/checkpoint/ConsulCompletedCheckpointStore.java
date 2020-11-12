@@ -1,11 +1,15 @@
 package com.espro.flink.consul.checkpoint;
 
-import com.ecwid.consul.v1.ConsulClient;
-import com.ecwid.consul.v1.kv.model.GetBinaryValue;
+import java.io.IOException;
+import java.util.ArrayDeque;
+import java.util.Comparator;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.apache.flink.api.common.JobID;
+import org.apache.flink.api.common.JobStatus;
 import org.apache.flink.runtime.checkpoint.CompletedCheckpoint;
 import org.apache.flink.runtime.checkpoint.CompletedCheckpointStore;
-import org.apache.flink.runtime.jobgraph.JobStatus;
 import org.apache.flink.runtime.state.RetrievableStateHandle;
 import org.apache.flink.runtime.zookeeper.RetrievableStateStorageHelper;
 import org.apache.flink.shaded.guava18.com.google.common.collect.Lists;
@@ -15,11 +19,8 @@ import org.apache.flink.util.Preconditions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.util.ArrayDeque;
-import java.util.Comparator;
-import java.util.List;
-import java.util.stream.Collectors;
+import com.ecwid.consul.v1.ConsulClient;
+import com.ecwid.consul.v1.kv.model.GetBinaryValue;
 
 final class ConsulCompletedCheckpointStore implements CompletedCheckpointStore {
 
@@ -59,11 +60,6 @@ final class ConsulCompletedCheckpointStore implements CompletedCheckpointStore {
 	@Override
 	public List<CompletedCheckpoint> getAllCheckpoints() throws Exception {
 		return Lists.newArrayList(completedCheckpoints);
-	}
-
-	@Override
-	public CompletedCheckpoint getLatestCheckpoint() throws Exception {
-		return completedCheckpoints.peekLast();
 	}
 
 	@Override
