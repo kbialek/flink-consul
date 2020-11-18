@@ -21,6 +21,7 @@ configurations {
 
 dependencies {
     compile 'com.ecwid.consul:consul-api:1.4.5'
+    compile 'org.apache.httpcomponents:httpclient:4.5.5'
     compile "org.apache.flink:flink-runtime_$scalaVersion:$flinkVersion"
 
     testCompile "junit:junit:4.12"
