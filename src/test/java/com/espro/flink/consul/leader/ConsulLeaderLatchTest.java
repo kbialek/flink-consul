@@ -18,24 +18,32 @@
 
 package com.espro.flink.consul.leader;
 
-import com.ecwid.consul.v1.ConsulClient;
-import com.espro.flink.consul.ConsulSessionActivator;
-import com.pszymczyk.consul.ConsulProcess;
-import com.pszymczyk.consul.ConsulStarterBuilder;
-import com.pszymczyk.consul.LogLevel;
-import com.espro.flink.consul.ConsulSessionHolder;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+
+import static com.espro.flink.consul.leader.ConsulLeaderData.UNKNOWN_ADDRESS;
+
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.flink.runtime.leaderretrieval.LeaderRetrievalListener;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Matchers;
 
-import java.util.UUID;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
-
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.*;
+import com.ecwid.consul.v1.ConsulClient;
+import com.espro.flink.consul.ConsulSessionActivator;
+import com.espro.flink.consul.ConsulSessionHolder;
+import com.pszymczyk.consul.ConsulProcess;
+import com.pszymczyk.consul.ConsulStarterBuilder;
+import com.pszymczyk.consul.LogLevel;
 
 public class ConsulLeaderLatchTest {
 
@@ -70,24 +78,24 @@ public class ConsulLeaderLatchTest {
 	}
 
 	@Test
-	public void testLeaderElection() throws InterruptedException {
+    public void testLeaderElection() throws Exception {
 		String leaderKey = "test-key";
 
 		ConsulLeaderLatchListener listener = mock(ConsulLeaderLatchListener.class);
 
-		ConsulLeaderLatch latch = new ConsulLeaderLatch(client, executor, sessionHolder1, leaderKey, "leader-address", listener, waitTime);
+        ConsulLeaderLatch latch = new ConsulLeaderLatch(client, executor, sessionHolder1, leaderKey, listener, waitTime);
 		latch.start();
 
-		Thread.sleep(1000 * waitTime);
-		verify(listener).onLeadershipAcquired(eq("leader-address"), any(UUID.class));
+        awaitLeaderElection();
+        verify(listener).onLeadershipAcquired(Matchers.eq(UNKNOWN_ADDRESS), eq(latch.getFlinkSessionId()));
 
-		assertTrue(latch.hasLeadership());
+        assertTrue(latch.hasLeadership(latch.getFlinkSessionId()));
 
 		latch.stop();
 	}
 
 	@Test
-	public void testLeaderElectionTwoNodes() throws InterruptedException {
+    public void testLeaderElectionTwoNodes() throws Exception {
 		String leaderKey = "test-key";
 
 		ConsulLeaderLatchListener listener1 = mock(ConsulLeaderLatchListener.class);
@@ -95,57 +103,57 @@ public class ConsulLeaderLatchTest {
 
 		LeaderRetrievalListener retrievalListener = mock(LeaderRetrievalListener.class);
 
-		ConsulLeaderLatch latch1 = new ConsulLeaderLatch(client, executor, sessionHolder1, leaderKey, "leader-address1", listener1, waitTime);
-		ConsulLeaderLatch latch2 = new ConsulLeaderLatch(client, executor, sessionHolder2, leaderKey, "leader-address2", listener2, waitTime);
+        ConsulLeaderLatch latch1 = new ConsulLeaderLatch(client, executor, sessionHolder1, leaderKey, listener1, waitTime);
+        ConsulLeaderLatch latch2 = new ConsulLeaderLatch(client, executor, sessionHolder2, leaderKey, listener2, waitTime);
 		ConsulLeaderRetriever leaderResolver = new ConsulLeaderRetriever(client, executor, leaderKey, retrievalListener, 1);
 
 		leaderResolver.start();
 		latch1.start();
-		Thread.sleep(100);
-		latch2.start();
+        awaitLeaderElection();
 
-		Thread.sleep(2000 * waitTime);
-		verify(listener1).onLeadershipAcquired(eq("leader-address1"), any(UUID.class));
-		verify(retrievalListener).notifyLeaderAddress(eq("leader-address1"), any(UUID.class));
-		assertTrue(latch1.hasLeadership());
-		assertFalse(latch2.hasLeadership());
+		latch2.start();
+        awaitLeaderElection();
+
+        verify(listener1).onLeadershipAcquired(eq(UNKNOWN_ADDRESS), eq(latch1.getFlinkSessionId()));
+        verify(retrievalListener).notifyLeaderAddress(Matchers.eq(UNKNOWN_ADDRESS), eq(latch1.getFlinkSessionId()));
+        assertTrue(latch1.hasLeadership(latch1.getFlinkSessionId()));
+        assertFalse(latch2.hasLeadership(latch2.getFlinkSessionId()));
 
 		latch1.stop();
-		Thread.sleep(2000 * waitTime);
-		verify(listener2).onLeadershipAcquired(eq("leader-address2"), any(UUID.class));
-		assertFalse(latch1.hasLeadership());
-		assertTrue(latch2.hasLeadership());
+        awaitLeaderElection();
+        verify(listener2).onLeadershipAcquired(Matchers.eq(UNKNOWN_ADDRESS), eq(latch2.getFlinkSessionId()));
+        assertFalse(latch1.hasLeadership(latch1.getFlinkSessionId()));
+        assertTrue(latch2.hasLeadership(latch2.getFlinkSessionId()));
 
 		latch2.stop();
-		assertFalse(latch1.hasLeadership());
-		assertFalse(latch2.hasLeadership());
+        assertFalse(latch1.hasLeadership(latch1.getFlinkSessionId()));
+        assertFalse(latch2.hasLeadership(latch2.getFlinkSessionId()));
 
 	}
 
 	@Test
-	public void testConsulReset() throws InterruptedException {
+    public void testConsulReset() throws Exception {
 		String leaderKey = "test-key";
 
 		ConsulLeaderLatchListener listener = mock(ConsulLeaderLatchListener.class);
 
-		ConsulLeaderLatch latch = new ConsulLeaderLatch(client, executor, sessionHolder1, leaderKey, "leader-address", listener, waitTime);
+        ConsulLeaderLatch latch = new ConsulLeaderLatch(client, executor, sessionHolder1, leaderKey, listener, waitTime);
 		latch.start();
 
-		Thread.sleep(1000 * waitTime);
-		verify(listener).onLeadershipAcquired(eq("leader-address"), any(UUID.class));
-		assertTrue(latch.hasLeadership());
+        awaitLeaderElection();
+        verify(listener).onLeadershipAcquired(Matchers.eq(UNKNOWN_ADDRESS), eq(latch.getFlinkSessionId()));
+        assertTrue(latch.hasLeadership(latch.getFlinkSessionId()));
 
 		consul.reset();
 		Thread.sleep(1000 * waitTime);
 		verify(listener).onLeadershipRevoked();
-		assertFalse(latch.hasLeadership());
+        assertFalse(latch.hasLeadership(latch.getFlinkSessionId()));
 
 		latch.stop();
 	}
 
-
 	@Test
-	public void testWithConsulNotReachable() throws InterruptedException {
+    public void testWithConsulNotReachable() throws Exception {
 		consul.close();
 
 		String leaderKey = "test-key";
@@ -153,15 +161,19 @@ public class ConsulLeaderLatchTest {
 		ConsulLeaderLatchListener listener = mock(ConsulLeaderLatchListener.class);
 		LeaderRetrievalListener retrievalListener = mock(LeaderRetrievalListener.class);
 
-		ConsulLeaderLatch latch = new ConsulLeaderLatch(client, executor, sessionHolder1, leaderKey, "leader-address", listener, waitTime);
+        ConsulLeaderLatch latch = new ConsulLeaderLatch(client, executor, sessionHolder1, leaderKey, listener, waitTime);
 		ConsulLeaderRetriever leaderResolver = new ConsulLeaderRetriever(client, executor, leaderKey, retrievalListener, 1);
 
 		leaderResolver.start();
 		latch.start();
 
-		Thread.sleep(1000 * waitTime);
+        awaitLeaderElection();
 		verify(retrievalListener, atLeastOnce()).handleError(any(Exception.class));
 
 		latch.stop();
 	}
+
+    private void awaitLeaderElection() throws Exception {
+        TimeUnit.SECONDS.sleep(waitTime);
+    }
 }
