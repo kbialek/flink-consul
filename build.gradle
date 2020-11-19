@@ -1,5 +1,5 @@
 plugins {
-    id "com.github.johnrengelman.shadow" version "2.0.2"
+    id "com.github.johnrengelman.shadow" version "6.1.0"
 }
 
 group 'com.espro.flink'
@@ -26,11 +26,12 @@ dependencies {
 
     testCompile "junit:junit:4.12"
     testCompile "org.mockito:mockito-core:1.10.19"
-    testCompile 'com.pszymczyk.consul:embedded-consul:1.0.2'
+    testCompile 'com.pszymczyk.consul:embedded-consul:2.1.4'
 
     shadow 'com.ecwid.consul:consul-api:1.4.5'
 }
 
 shadowJar {
     configurations = [project.configurations.shadow]
+    classifier = ''
 }

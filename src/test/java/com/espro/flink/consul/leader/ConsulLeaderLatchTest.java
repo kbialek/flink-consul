@@ -18,28 +18,30 @@
 
 package com.espro.flink.consul.leader;
 
-import com.ecwid.consul.v1.ConsulClient;
-import com.espro.flink.consul.ConsulSessionActivator;
-import com.pszymczyk.consul.ConsulProcess;
-import com.pszymczyk.consul.ConsulStarterBuilder;
-import com.pszymczyk.consul.LogLevel;
-import com.espro.flink.consul.ConsulSessionHolder;
-import org.apache.flink.runtime.leaderretrieval.LeaderRetrievalListener;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.*;
+import org.apache.flink.runtime.leaderretrieval.LeaderRetrievalListener;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
-public class ConsulLeaderLatchTest {
+import com.ecwid.consul.v1.ConsulClient;
+import com.espro.flink.consul.AbstractConsulTest;
+import com.espro.flink.consul.ConsulSessionActivator;
+import com.espro.flink.consul.ConsulSessionHolder;
 
-	private ConsulProcess consul;
+public class ConsulLeaderLatchTest extends AbstractConsulTest {
+
 	private ConsulClient client;
 	private Executor executor = Executors.newFixedThreadPool(8);
 	private int waitTime = 1;
@@ -50,11 +52,6 @@ public class ConsulLeaderLatchTest {
 
 	@Before
 	public void setup() {
-		consul = ConsulStarterBuilder.consulStarter()
-			.withConsulVersion("1.0.3")
-			.withLogLevel(LogLevel.DEBUG)
-			.build()
-			.start();
 		client = new ConsulClient(String.format("localhost:%d", consul.getHttpPort()));
 		sessionActivator1 = new ConsulSessionActivator(client, executor, 10);
 		sessionHolder1 = sessionActivator1.start();
@@ -66,7 +63,6 @@ public class ConsulLeaderLatchTest {
 	public void cleanup() {
 		sessionActivator1.stop();
 		sessionActivator2.stop();
-		consul.close();
 	}
 
 	@Test

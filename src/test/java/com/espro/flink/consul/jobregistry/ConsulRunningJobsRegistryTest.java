@@ -1,41 +1,28 @@
 package com.espro.flink.consul.jobregistry;
 
-import com.ecwid.consul.v1.ConsulClient;
-import com.pszymczyk.consul.ConsulProcess;
-import com.pszymczyk.consul.ConsulStarterBuilder;
-import com.pszymczyk.consul.LogLevel;
-import org.apache.flink.api.common.JobID;
-import com.espro.flink.consul.ConsulSessionActivator;
-import org.apache.flink.runtime.highavailability.RunningJobsRegistry;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
 import java.util.concurrent.Executors;
 
-import static org.junit.Assert.assertEquals;
+import org.apache.flink.api.common.JobID;
+import org.apache.flink.runtime.highavailability.RunningJobsRegistry;
+import org.junit.Before;
+import org.junit.Test;
 
-public class ConsulRunningJobsRegistryTest {
+import com.ecwid.consul.v1.ConsulClient;
+import com.espro.flink.consul.AbstractConsulTest;
+import com.espro.flink.consul.ConsulSessionActivator;
 
-	private ConsulProcess consul;
+public class ConsulRunningJobsRegistryTest extends AbstractConsulTest {
+
 	private ConsulClient client;
 	private ConsulSessionActivator sessionActivator;
 	private String jobRegistryPath = "test-jobregistry/";
 
 	@Before
 	public void setup() {
-		consul = ConsulStarterBuilder.consulStarter()
-			.withConsulVersion("1.0.3")
-			.withLogLevel(LogLevel.DEBUG)
-			.build()
-			.start();
 		client = new ConsulClient("localhost", consul.getHttpPort());
 		sessionActivator = new ConsulSessionActivator(client, Executors.newSingleThreadExecutor(), 10);
-	}
-
-	@After
-	public void cleanup() {
-		consul.close();
 	}
 
 	@Test

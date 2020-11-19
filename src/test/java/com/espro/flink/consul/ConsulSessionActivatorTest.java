@@ -1,38 +1,29 @@
 package com.espro.flink.consul;
 
-import com.ecwid.consul.v1.ConsulClient;
-import com.ecwid.consul.v1.QueryParams;
-import com.ecwid.consul.v1.session.model.NewSession;
-import com.pszymczyk.consul.ConsulProcess;
-import com.pszymczyk.consul.ConsulStarterBuilder;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.mockito.Mockito.*;
+import org.junit.Before;
+import org.junit.Test;
 
-public class ConsulSessionActivatorTest {
+import com.ecwid.consul.v1.ConsulClient;
+import com.ecwid.consul.v1.QueryParams;
+import com.ecwid.consul.v1.session.model.NewSession;
 
-	private ConsulProcess consul;
+public class ConsulSessionActivatorTest extends AbstractConsulTest {
+
 	private ConsulClient client;
 
 	@Before
 	public void setup() {
-		consul = ConsulStarterBuilder.consulStarter()
-			.withConsulVersion("1.0.3")
-			.build()
-			.start();
 		client = new ConsulClient("localhost", consul.getHttpPort());
-	}
-
-	@After
-	public void cleanup() {
-		consul.close();
 	}
 
 	@Test

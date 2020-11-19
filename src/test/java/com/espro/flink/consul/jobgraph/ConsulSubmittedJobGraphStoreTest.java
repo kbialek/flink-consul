@@ -11,33 +11,21 @@ import org.apache.flink.api.common.JobID;
 import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.runtime.jobmanager.JobGraphStore;
 import org.apache.flink.util.FlinkException;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.ecwid.consul.v1.ConsulClient;
+import com.espro.flink.consul.AbstractConsulTest;
 import com.pszymczyk.consul.ConsulProcess;
-import com.pszymczyk.consul.ConsulStarterBuilder;
-import com.pszymczyk.consul.LogLevel;
 
-public class ConsulSubmittedJobGraphStoreTest {
+public class ConsulSubmittedJobGraphStoreTest extends AbstractConsulTest {
 	private ConsulProcess consul;
 	private ConsulClient client;
 	private String jobgraphsPath = "test-jobgraphs/";
 
 	@Before
 	public void setup() {
-		consul = ConsulStarterBuilder.consulStarter()
-			.withConsulVersion("1.0.3")
-			.withLogLevel(LogLevel.DEBUG)
-			.build()
-			.start();
 		client = new ConsulClient("localhost", consul.getHttpPort());
-	}
-
-	@After
-	public void cleanup() {
-		consul.close();
 	}
 
 	@Test
