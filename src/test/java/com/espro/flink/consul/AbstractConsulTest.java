@@ -7,11 +7,14 @@ import com.pszymczyk.consul.ConsulProcess;
 import com.pszymczyk.consul.ConsulStarterBuilder;
 
 /**
- * Abstract test class to provide Consul Server to test against. This class is responsible for starting the consul process and shutting
- * afterwards.
+ * Abstract test class to provide Consul Server to test against. This class is responsible for starting the consul process and shutting it
+ * down afterwards.
  */
 public abstract class AbstractConsulTest {
 
+    /**
+     * Consul version that is used to start the embedded consul process.
+     */
     private static final String CONSUL_VERSION = "1.8.4";
 
     protected ConsulProcess consul;
