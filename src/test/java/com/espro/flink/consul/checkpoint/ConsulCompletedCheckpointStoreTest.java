@@ -34,19 +34,16 @@ import org.apache.flink.shaded.guava18.com.google.common.collect.Lists;
 import org.apache.flink.shaded.guava18.com.google.common.collect.Maps;
 import org.apache.flink.shaded.guava18.com.google.common.io.Files;
 import org.apache.flink.util.InstantiationUtil;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.ecwid.consul.v1.ConsulClient;
 import com.ecwid.consul.v1.Response;
 import com.ecwid.consul.v1.kv.model.GetBinaryValue;
-import com.pszymczyk.consul.ConsulProcess;
-import com.pszymczyk.consul.ConsulStarterBuilder;
+import com.espro.flink.consul.AbstractConsulTest;
 
-public class ConsulCompletedCheckpointStoreTest {
+public class ConsulCompletedCheckpointStoreTest extends AbstractConsulTest {
 
-    private ConsulProcess consul;
     private ConsulClient client;
     private File tempDir;
     private RetrievableStateStorageHelper<CompletedCheckpoint> storage;
@@ -54,18 +51,9 @@ public class ConsulCompletedCheckpointStoreTest {
 
     @Before
     public void setup() throws IOException {
-        consul = ConsulStarterBuilder.consulStarter()
-                .withConsulVersion("1.0.3")
-                .build()
-                .start();
         client = new ConsulClient(String.format("localhost:%d", consul.getHttpPort()));
         tempDir = Files.createTempDir();
         storage = new FileSystemStateStorageHelper<>(new Path(tempDir.getPath()), "cp");
-    }
-
-    @After
-    public void cleanup() {
-        consul.close();
     }
 
     @Test
