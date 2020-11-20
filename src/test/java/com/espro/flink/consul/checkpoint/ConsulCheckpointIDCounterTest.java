@@ -7,34 +7,20 @@ import java.util.concurrent.Executors;
 
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.api.common.JobStatus;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.ecwid.consul.v1.ConsulClient;
-import com.pszymczyk.consul.ConsulProcess;
-import com.pszymczyk.consul.ConsulStarterBuilder;
-import com.pszymczyk.consul.LogLevel;
+import com.espro.flink.consul.AbstractConsulTest;
 
-public class ConsulCheckpointIDCounterTest {
+public class ConsulCheckpointIDCounterTest extends AbstractConsulTest {
 
-	private ConsulProcess consul;
 	private ConsulClient client;
 	private String countersPath = "test-counters/";
 
 	@Before
 	public void setup() {
-		consul = ConsulStarterBuilder.consulStarter()
-			.withConsulVersion("1.0.3")
-			.withLogLevel(LogLevel.DEBUG)
-			.build()
-			.start();
 		client = new ConsulClient("localhost", consul.getHttpPort());
-	}
-
-	@After
-	public void cleanup() {
-		consul.close();
 	}
 
 	@Test
