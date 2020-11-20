@@ -32,15 +32,11 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import org.mockito.Matchers;
-
-import com.ecwid.consul.v1.ConsulClient;
-import com.espro.flink.consul.ConsulSessionActivator;
-import com.espro.flink.consul.ConsulSessionHolder;
-import com.pszymczyk.consul.ConsulProcess;
-import com.pszymczyk.consul.ConsulStarterBuilder;
-import com.pszymczyk.consul.LogLevel;
+import org.apache.flink.runtime.leaderretrieval.LeaderRetrievalListener;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Matchers;
 
 import com.ecwid.consul.v1.ConsulClient;
 import com.espro.flink.consul.AbstractConsulTest;
