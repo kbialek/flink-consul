@@ -121,8 +121,7 @@ public class ConsulLeaderElectionService implements LeaderElectionService {
 
 			leaderContender = contender;
 
-            leaderLatch = new ConsulLeaderLatch(client, executor, sessionHolder, leaderPath,
-                    leaderContender.getDescription(), listener, 10);
+            leaderLatch = new ConsulLeaderLatch(client, executor, sessionHolder, leaderPath, listener, 10);
 			leaderLatch.start();
 
 			running = true;
@@ -142,18 +141,22 @@ public class ConsulLeaderElectionService implements LeaderElectionService {
 			confirmedLeaderSessionID = null;
 		}
 
-		LOG.info("Stopping ZooKeeperLeaderElectionService {}.", this);
+        LOG.info("Stopping ConsulLeaderElectionService {}.", this);
 
 	}
 
     @Override
     public void confirmLeadership(UUID leaderSessionID, String leaderAddress) {
-
+        if (hasLeadership(leaderSessionID)) {
+            LOG.info("Leadership confirmed for {} and session id {}", leaderAddress, leaderSessionID);
+            leaderLatch.confirmLeadership(leaderSessionID, leaderAddress);
+            this.confirmedLeaderSessionID = leaderSessionID;
+        }
     }
 
     @Override
     public boolean hasLeadership(UUID leaderSessionId) {
-        return leaderLatch.hasLeadership();
+        return leaderLatch.hasLeadership(leaderSessionId);
     }
 
 }

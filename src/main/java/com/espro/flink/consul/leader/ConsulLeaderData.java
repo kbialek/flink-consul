@@ -17,22 +17,31 @@
  */
 package com.espro.flink.consul.leader;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.util.UUID;
+
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import org.apache.flink.util.Preconditions;
 
-import java.io.*;
-import java.util.UUID;
-
+/**
+ * POJO that is used to write to Consul. Holds information about the current leadership.
+ */
 final class ConsulLeaderData {
+
+    static final String UNKNOWN_ADDRESS = "unknown";
 
 	private final String address;
 	private final UUID sessionId;
 
 	public ConsulLeaderData(String address, UUID sessionId) {
-		this.address = Preconditions.checkNotNull(address, "address");
+        this.address = address == null ? UNKNOWN_ADDRESS : address;
 		this.sessionId = Preconditions.checkNotNull(sessionId, "sessionId");
 	}
 

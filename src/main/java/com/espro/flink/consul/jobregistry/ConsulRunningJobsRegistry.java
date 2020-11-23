@@ -1,15 +1,23 @@
 package com.espro.flink.consul.jobregistry;
 
-import com.ecwid.consul.v1.ConsulClient;
-import com.ecwid.consul.v1.kv.model.GetValue;
-import com.ecwid.consul.v1.kv.model.PutParams;
-import org.apache.flink.api.common.JobID;
-import com.espro.flink.consul.ConsulSessionHolder;
-import org.apache.flink.runtime.highavailability.RunningJobsRegistry;
-import org.apache.flink.util.Preconditions;
+import static java.text.MessageFormat.format;
 
 import java.io.IOException;
 
+import org.apache.flink.api.common.JobID;
+import org.apache.flink.runtime.highavailability.RunningJobsRegistry;
+import org.apache.flink.util.Preconditions;
+
+import com.ecwid.consul.v1.ConsulClient;
+import com.ecwid.consul.v1.kv.model.GetValue;
+import com.ecwid.consul.v1.kv.model.PutParams;
+import com.espro.flink.consul.ConsulSessionHolder;
+
+/**
+ * Stores the status of a Flink Job in Consul.
+ *
+ * @see JobSchedulingStatus
+ */
 public final class ConsulRunningJobsRegistry implements RunningJobsRegistry {
 
 	private final ConsulClient client;
@@ -47,8 +55,9 @@ public final class ConsulRunningJobsRegistry implements RunningJobsRegistry {
 	private void storeJobStatus(JobID jobID, JobSchedulingStatus status) {
 		PutParams params = new PutParams();
 		params.setAcquireSession(sessionHolder.getSessionId());
-		if (!client.setKVValue(path(jobID), status.name(), params).getValue()) {
-			throw new IllegalStateException(String.format("Failed to store JobStatus(%s) for JobID: %s", status.name(), jobID.toString()));
+        Boolean jobStatusStorageResult = client.setKVValue(path(jobID), status.name(), params).getValue();
+        if (jobStatusStorageResult == null || !jobStatusStorageResult) {
+            throw new IllegalStateException(format("Failed to store JobStatus({0}) for JobID: {1}", status, jobID));
 		}
 	}
 
