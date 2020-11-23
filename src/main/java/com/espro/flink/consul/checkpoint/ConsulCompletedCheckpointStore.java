@@ -22,6 +22,10 @@ import org.slf4j.LoggerFactory;
 import com.ecwid.consul.v1.ConsulClient;
 import com.ecwid.consul.v1.kv.model.GetBinaryValue;
 
+/**
+ * Completed checkpoints are stored using the {@link RetrievableStateStorageHelper} and only a pointer to this checkpoint is stored in
+ * Consul.
+ */
 final class ConsulCompletedCheckpointStore implements CompletedCheckpointStore {
 
 	private static final Logger LOG = LoggerFactory.getLogger(ConsulCompletedCheckpointStore.class);
