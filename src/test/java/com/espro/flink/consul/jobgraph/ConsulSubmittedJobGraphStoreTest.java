@@ -16,11 +16,10 @@ import org.junit.Test;
 
 import com.ecwid.consul.v1.ConsulClient;
 import com.espro.flink.consul.AbstractConsulTest;
-import com.pszymczyk.consul.ConsulProcess;
 
 public class ConsulSubmittedJobGraphStoreTest extends AbstractConsulTest {
-	private ConsulProcess consul;
-	private ConsulClient client;
+
+    private ConsulClient client;
 	private String jobgraphsPath = "test-jobgraphs/";
 
 	@Before
