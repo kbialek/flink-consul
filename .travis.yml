@@ -1,19 +1,7 @@
-# Licensed to the Apache Software Foundation (ASF) under one or more
-# contributor license agreements.  See the NOTICE file distributed with
-# this work for additional information regarding copyright ownership.
-# The ASF licenses this file to You under the Apache License, Version 2.0
-# (the "License"); you may not use this file except in compliance with
-# the License.  You may obtain a copy of the License at
-#
-#    http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 language: java
-
 jdk:
-  - openjdk8
+- openjdk8
+env:
+  global:
+    secure: FSdWPLzV5uYDYAZIcpv6FjMwZXAsR0AQpne57F+HnJASuxIN4gUDSBAFDbKwEzLGV8ywhxLnGqSKhWZCvsSqtJ0m/JO1CxofJvJwgcIx7qJS2aEqD/vjOPXx2zeRskzyXbihVTfS5cNIIuP5iddtDlQeQBAL7o8erDk185OAaE5MBpOR8LQHv2WLBTr/E5vX9W8pWovuin1TESL/SI/22uTe2k/3I0OGa0yArjqF8/8uLHy+fjk25jdiPcPAsc5j2bvctLyhW3Ek+XmngYm/mzNgn7yFDqPi3lUhig/cfYd9Uw4F3exPoEbcJ8nevG3I+g0n3zpNbnn7N3wgWom/s/C/SD/WhJNtbjab50WLZBPgiKkoVqnJu/Wxki9POv4CFe8MMwqv4r/a+0Q6OLqbIH3IKJOi4Em84fpGFtyHD9BukWH9hL4CmjmMt5Gdgr8njP7dRHqyKDgpA2uPVsrcTYMnf+eZW/AvgHT8C64XnLkn4XHOnrC9Y4IrnGAAcSGqXkCOdXixeYkF9DpE9jTvUMMra0wKbbUjWyAzJX5EPWYhwpD8Bl6igVdB5pMaLNNQC5llUwQ8bSd6ilCNnKqTplRxHAotb+05Xmhe0Bb44s0g9W2bpg/f8er44vXIiIPv94cCD7hrQE/O3fXJB4yPI9xDTbhoQ6xPQytv+f4BNj4=
+
