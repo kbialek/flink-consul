@@ -5,32 +5,46 @@ import static org.junit.Assert.assertNotSame;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
+import java.io.IOException;
 import java.util.Collection;
 
 import org.apache.flink.api.common.JobID;
+import org.apache.flink.configuration.Configuration;
+import org.apache.flink.configuration.HighAvailabilityOptions;
 import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.runtime.jobmanager.JobGraphStore;
 import org.apache.flink.util.FlinkException;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import com.ecwid.consul.v1.ConsulClient;
 import com.espro.flink.consul.AbstractConsulTest;
 
 public class ConsulSubmittedJobGraphStoreTest extends AbstractConsulTest {
 
+    @Rule
+    public TemporaryFolder tmpFolder = new TemporaryFolder();
+
     private ConsulClient client;
+    private Configuration configuration;
 	private String jobgraphsPath = "test-jobgraphs/";
 
+
 	@Before
-	public void setup() {
+    public void setup() throws IOException {
 		client = new ConsulClient("localhost", consul.getHttpPort());
+
+        // Provide a HA_STORAGE_PATH
+        configuration = new Configuration();
+        configuration.setString(HighAvailabilityOptions.HA_STORAGE_PATH, tmpFolder.newFolder().getAbsolutePath());
 	}
 
 	@Test
 	public void testPutAndRecoverJobGraph() throws Exception {
-		ConsulSubmittedJobGraphStore graphStore1 = new ConsulSubmittedJobGraphStore(client, jobgraphsPath);
-		ConsulSubmittedJobGraphStore graphStore2 = new ConsulSubmittedJobGraphStore(client, jobgraphsPath);
+        ConsulSubmittedJobGraphStore graphStore1 = new ConsulSubmittedJobGraphStore(configuration, client, jobgraphsPath);
+        ConsulSubmittedJobGraphStore graphStore2 = new ConsulSubmittedJobGraphStore(configuration, client, jobgraphsPath);
 
         JobGraphStore.JobGraphListener listener = mock(JobGraphStore.JobGraphListener.class);
 
@@ -50,7 +64,7 @@ public class ConsulSubmittedJobGraphStoreTest extends AbstractConsulTest {
 
 	@Test(expected = FlinkException.class)
 	public void testPutAndRemoveJobGraph() throws Exception {
-		ConsulSubmittedJobGraphStore graphStore1 = new ConsulSubmittedJobGraphStore(client, jobgraphsPath);
+        ConsulSubmittedJobGraphStore graphStore1 = new ConsulSubmittedJobGraphStore(configuration, client, jobgraphsPath);
 
         JobGraphStore.JobGraphListener listener = mock(JobGraphStore.JobGraphListener.class);
 
@@ -67,7 +81,7 @@ public class ConsulSubmittedJobGraphStoreTest extends AbstractConsulTest {
 
 	@Test
 	public void testGetJobIds() throws Exception {
-		ConsulSubmittedJobGraphStore graphStore1 = new ConsulSubmittedJobGraphStore(client, jobgraphsPath);
+        ConsulSubmittedJobGraphStore graphStore1 = new ConsulSubmittedJobGraphStore(configuration, client, jobgraphsPath);
 
         JobGraphStore.JobGraphListener listener = mock(JobGraphStore.JobGraphListener.class);
 

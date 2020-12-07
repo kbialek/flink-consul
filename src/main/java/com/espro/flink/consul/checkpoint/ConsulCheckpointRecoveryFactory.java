@@ -1,16 +1,18 @@
 package com.espro.flink.consul.checkpoint;
 
-import com.ecwid.consul.v1.ConsulClient;
-import com.espro.flink.consul.configuration.ConsulHighAvailabilityOptions;
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.runtime.checkpoint.CheckpointIDCounter;
 import org.apache.flink.runtime.checkpoint.CheckpointRecoveryFactory;
 import org.apache.flink.runtime.checkpoint.CompletedCheckpoint;
 import org.apache.flink.runtime.checkpoint.CompletedCheckpointStore;
-import org.apache.flink.runtime.util.ZooKeeperUtils;
+import org.apache.flink.runtime.highavailability.HighAvailabilityServicesUtils;
 import org.apache.flink.runtime.zookeeper.RetrievableStateStorageHelper;
+import org.apache.flink.runtime.zookeeper.filesystem.FileSystemStateStorageHelper;
 import org.apache.flink.util.Preconditions;
+
+import com.ecwid.consul.v1.ConsulClient;
+import com.espro.flink.consul.configuration.ConsulHighAvailabilityOptions;
 
 public final class ConsulCheckpointRecoveryFactory implements CheckpointRecoveryFactory {
 
@@ -24,8 +26,8 @@ public final class ConsulCheckpointRecoveryFactory implements CheckpointRecovery
 
 	@Override
 	public CompletedCheckpointStore createCheckpointStore(JobID jobId, int maxNumberOfCheckpointsToRetain, ClassLoader userClassLoader) throws Exception {
-		RetrievableStateStorageHelper<CompletedCheckpoint> stateStorage =
-			ZooKeeperUtils.createFileSystemStateStorage(configuration, "completedCheckpoint");
+        RetrievableStateStorageHelper<CompletedCheckpoint> stateStorage = new FileSystemStateStorageHelper<>(
+                HighAvailabilityServicesUtils.getClusterHighAvailableStoragePath(configuration), "completedCheckpoint");
 
 		return new ConsulCompletedCheckpointStore(client, checkpointsPath(), jobId, maxNumberOfCheckpointsToRetain, stateStorage);
 	}

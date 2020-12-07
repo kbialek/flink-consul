@@ -158,7 +158,7 @@ public class ConsulHaServices implements HighAvailabilityServices {
 
     @Override
     public JobGraphStore getJobGraphStore() throws Exception {
-        return new ConsulSubmittedJobGraphStore(client, jobGraphsPath());
+        return new ConsulSubmittedJobGraphStore(configuration, client, jobGraphsPath());
 	}
 
 	@Override
