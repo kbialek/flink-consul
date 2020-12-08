@@ -1,30 +1,51 @@
 package com.espro.flink.consul.jobgraph;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import org.apache.flink.api.common.JobID;
+import org.apache.flink.configuration.Configuration;
+import org.apache.flink.runtime.highavailability.HighAvailabilityServicesUtils;
 import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.runtime.jobmanager.JobGraphStore;
+import org.apache.flink.runtime.state.RetrievableStateHandle;
+import org.apache.flink.runtime.zookeeper.RetrievableStateStorageHelper;
+import org.apache.flink.runtime.zookeeper.filesystem.FileSystemStateStorageHelper;
 import org.apache.flink.util.FlinkException;
 import org.apache.flink.util.InstantiationUtil;
 import org.apache.flink.util.Preconditions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.ecwid.consul.v1.ConsulClient;
 import com.ecwid.consul.v1.kv.model.GetBinaryValue;
 
+/**
+ * Stores the state of the job graph to the configured HA storage directory and only a pointer (RetrievableStateHandle) of the state to
+ * Consul.
+ *
+ * @see RetrievableStateHandle
+ * @see FileSystemStateStorageHelper
+ * @see HighAvailabilityServicesUtils#getClusterHighAvailableStoragePath(Configuration)
+ */
 public final class ConsulSubmittedJobGraphStore implements JobGraphStore {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ConsulSubmittedJobGraphStore.class);
 
 	private final ConsulClient client;
 	private final String jobgraphsPath;
+    private final RetrievableStateStorageHelper<JobGraph> jobGraphStateStorage;
     private JobGraphListener listener;
 
-	public ConsulSubmittedJobGraphStore(ConsulClient client, String jobgraphsPath) {
+    public ConsulSubmittedJobGraphStore(Configuration configuration, ConsulClient client, String jobgraphsPath) throws IOException {
 		this.client = Preconditions.checkNotNull(client, "client");
 		this.jobgraphsPath = Preconditions.checkNotNull(jobgraphsPath, "jobgraphsPath");
-		Preconditions.checkArgument(jobgraphsPath.endsWith("/"), "jobgraphsPath must end with /");
+        Preconditions.checkArgument(jobgraphsPath.endsWith("/"), "jobgraphsPath must end with /");
+        this.jobGraphStateStorage = new FileSystemStateStorageHelper<>(
+                HighAvailabilityServicesUtils.getClusterHighAvailableStoragePath(configuration), "jobGraph");
 	}
 
 	@Override
@@ -34,33 +55,65 @@ public final class ConsulSubmittedJobGraphStore implements JobGraphStore {
 
 	@Override
 	public void stop() throws Exception {
-
+        // Nothing to do here
 	}
 
 	@Override
 	public void putJobGraph(JobGraph jobGraph) throws Exception {
-		byte[] bytes = InstantiationUtil.serializeObject(jobGraph);
-        client.setKVBinaryValue(path(jobGraph.getJobID()), bytes);
+        RetrievableStateHandle<JobGraph> stateHandle = jobGraphStateStorage.store(jobGraph);
+
+        boolean success = false;
+        try {
+            // Write state handle (not the actual state) to Consul. This is expected to be
+            // smaller than the state itself.
+            byte[] bytes = InstantiationUtil.serializeObject(stateHandle);
+            LOG.debug("{} bytes will be written to Consul.", bytes.length);
+            Boolean response = client.setKVBinaryValue(path(jobGraph.getJobID()), bytes).getValue();
+            success = response == null ? false : response;
+        } finally {
+            // Cleanup the state handle if it was not written to Consul
+            if (!success) {
+                stateHandle.discardState();
+            }
+        }
         this.listener.onAddedJobGraph(jobGraph.getJobID());
 	}
 
 	@Override
     public JobGraph recoverJobGraph(JobID jobId) throws Exception {
-		GetBinaryValue value = client.getKVBinaryValue(path(jobId)).getValue();
+        return getStateHandle(jobId).retrieveState();
+    }
+
+    private RetrievableStateHandle<JobGraph> getStateHandle(JobID jobId) throws FlinkException {
+        GetBinaryValue value = client.getKVBinaryValue(path(jobId)).getValue();
 		if (value != null) {
 			try {
-				return InstantiationUtil.deserializeObject(value.getValue(), Thread.currentThread().getContextClassLoader());
+                return InstantiationUtil.deserializeObject(value.getValue(),
+                        Thread.currentThread().getContextClassLoader());
 			} catch (Exception e) {
 				throw new FlinkException("Could not deserialize SubmittedJobGraph for Job " + jobId.toString(), e);
 			}
 		} else {
 			throw new FlinkException("Could not retrieve SubmittedJobGraph for Job " + jobId.toString());
 		}
-	}
+    }
 
 	@Override
     public void removeJobGraph(JobID jobId) throws Exception {
-		client.deleteKVValue(path(jobId));
+        RetrievableStateHandle<JobGraph> stateHandle = null;
+        try {
+            stateHandle = getStateHandle(jobId);
+        } catch (FlinkException e) {
+            LOG.warn("Could not retrieve the state handle from Consul {}.", path(jobId), e);
+        }
+
+        // First remove state from Consul (Independent of errors when reading the state handler)
+        client.deleteKVValue(path(jobId));
+
+        if (stateHandle != null) {
+            stateHandle.discardState();
+        }
+
 		listener.onRemovedJobGraph(jobId);
 	}
 
