@@ -23,6 +23,14 @@ import org.slf4j.LoggerFactory;
 import com.ecwid.consul.v1.ConsulClient;
 import com.ecwid.consul.v1.kv.model.GetBinaryValue;
 
+/**
+ * Stores the state of the job graph to the configured HA storage directory and only a pointer (RetrievableStateHandle) of the state to
+ * Consul.
+ *
+ * @see RetrievableStateHandle
+ * @see FileSystemStateStorageHelper
+ * @see HighAvailabilityServicesUtils#getClusterHighAvailableStoragePath(Configuration)
+ */
 public final class ConsulSubmittedJobGraphStore implements JobGraphStore {
 
     private static final Logger LOG = LoggerFactory.getLogger(ConsulSubmittedJobGraphStore.class);
@@ -55,9 +63,9 @@ public final class ConsulSubmittedJobGraphStore implements JobGraphStore {
         RetrievableStateHandle<JobGraph> stateHandle = jobGraphStateStorage.store(jobGraph);
 
         boolean success = false;
-        // Write state handle (not the actual state) to Consul. This is expected to be
-        // smaller than the state itself.
         try {
+            // Write state handle (not the actual state) to Consul. This is expected to be
+            // smaller than the state itself.
             byte[] bytes = InstantiationUtil.serializeObject(stateHandle);
             LOG.debug("{} bytes will be written to Consul.", bytes.length);
             Boolean response = client.setKVBinaryValue(path(jobGraph.getJobID()), bytes).getValue();
