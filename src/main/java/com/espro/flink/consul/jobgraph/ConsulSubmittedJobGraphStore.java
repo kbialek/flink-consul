@@ -54,11 +54,20 @@ public final class ConsulSubmittedJobGraphStore implements JobGraphStore {
 	public void putJobGraph(JobGraph jobGraph) throws Exception {
         RetrievableStateHandle<JobGraph> stateHandle = jobGraphStateStorage.store(jobGraph);
 
+        boolean success = false;
         // Write state handle (not the actual state) to Consul. This is expected to be
         // smaller than the state itself.
-        byte[] bytes = InstantiationUtil.serializeObject(stateHandle);
-        LOG.debug("{} bytes will be written to Consul.", bytes.length);
-        client.setKVBinaryValue(path(jobGraph.getJobID()), bytes);
+        try {
+            byte[] bytes = InstantiationUtil.serializeObject(stateHandle);
+            LOG.debug("{} bytes will be written to Consul.", bytes.length);
+            Boolean response = client.setKVBinaryValue(path(jobGraph.getJobID()), bytes).getValue();
+            success = response == null ? false : response;
+        } finally {
+            // Cleanup the state handle if it was not written to Consul
+            if (!success) {
+                stateHandle.discardState();
+            }
+        }
         this.listener.onAddedJobGraph(jobGraph.getJobID());
 	}
 
