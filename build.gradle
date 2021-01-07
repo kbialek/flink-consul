@@ -27,6 +27,9 @@ dependencies {
     testCompile "junit:junit:4.12"
     testCompile "org.mockito:mockito-core:1.10.19"
     testCompile 'com.pszymczyk.consul:embedded-consul:2.1.4'
+    testCompile 'org.awaitility:awaitility:4.0.3'
+    testCompile "org.apache.flink:flink-runtime_$scalaVersion:$flinkVersion:tests"
+    testCompile "org.apache.flink:flink-test-utils_$scalaVersion:$flinkVersion"
 
     shadow 'com.ecwid.consul:consul-api:1.4.5'
 }

@@ -1,5 +1,7 @@
 package com.espro.flink.consul.checkpoint;
 
+import java.util.concurrent.Executor;
+
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.runtime.checkpoint.CheckpointIDCounter;
@@ -18,9 +20,11 @@ public final class ConsulCheckpointRecoveryFactory implements CheckpointRecovery
 
 	private final ConsulClient client;
 	private final Configuration configuration;
+    private final Executor executor;
 
-	public ConsulCheckpointRecoveryFactory(ConsulClient client, Configuration configuration) {
-		this.client = Preconditions.checkNotNull(client, "client");
+    public ConsulCheckpointRecoveryFactory(ConsulClient client, Configuration configuration, Executor executor) {
+        this.executor = executor;
+        this.client = Preconditions.checkNotNull(client, "client");
 		this.configuration = Preconditions.checkNotNull(configuration, "configuration");
 	}
 
@@ -29,7 +33,7 @@ public final class ConsulCheckpointRecoveryFactory implements CheckpointRecovery
         RetrievableStateStorageHelper<CompletedCheckpoint> stateStorage = new FileSystemStateStorageHelper<>(
                 HighAvailabilityServicesUtils.getClusterHighAvailableStoragePath(configuration), "completedCheckpoint");
 
-		return new ConsulCompletedCheckpointStore(client, checkpointsPath(), jobId, maxNumberOfCheckpointsToRetain, stateStorage);
+        return new ConsulCompletedCheckpointStore(client, checkpointsPath(), jobId, maxNumberOfCheckpointsToRetain, stateStorage, executor);
 	}
 
 	@Override
