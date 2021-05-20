@@ -8,9 +8,10 @@ import org.apache.flink.runtime.checkpoint.CheckpointIDCounter;
 import org.apache.flink.runtime.checkpoint.CheckpointRecoveryFactory;
 import org.apache.flink.runtime.checkpoint.CompletedCheckpoint;
 import org.apache.flink.runtime.checkpoint.CompletedCheckpointStore;
+import org.apache.flink.runtime.checkpoint.DefaultCompletedCheckpointStore;
 import org.apache.flink.runtime.highavailability.HighAvailabilityServicesUtils;
-import org.apache.flink.runtime.zookeeper.RetrievableStateStorageHelper;
-import org.apache.flink.runtime.zookeeper.filesystem.FileSystemStateStorageHelper;
+import org.apache.flink.runtime.persistence.RetrievableStateStorageHelper;
+import org.apache.flink.runtime.persistence.filesystem.FileSystemStateStorageHelper;
 import org.apache.flink.util.Preconditions;
 
 import com.ecwid.consul.v1.ConsulClient;
@@ -33,7 +34,12 @@ public final class ConsulCheckpointRecoveryFactory implements CheckpointRecovery
         RetrievableStateStorageHelper<CompletedCheckpoint> stateStorage = new FileSystemStateStorageHelper<>(
                 HighAvailabilityServicesUtils.getClusterHighAvailableStoragePath(configuration), "completedCheckpoint");
 
-        return new ConsulCompletedCheckpointStore(client, checkpointsPath(), jobId, maxNumberOfCheckpointsToRetain, stateStorage, executor);
+        ConsulStateHandleStore<CompletedCheckpoint> consulStateHandleStore = new ConsulStateHandleStore<>(client, stateStorage,
+                checkpointsPath());
+        ConsulCheckpointStoreUtil consulCheckpointStoreUtil = new ConsulCheckpointStoreUtil(checkpointsPath(), jobId);
+
+        return new DefaultCompletedCheckpointStore<>(maxNumberOfCheckpointsToRetain, consulStateHandleStore, consulCheckpointStoreUtil,
+                executor);
 	}
 
 	@Override
