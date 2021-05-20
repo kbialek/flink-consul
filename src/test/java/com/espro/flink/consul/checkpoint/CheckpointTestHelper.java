@@ -121,7 +121,8 @@ public class CheckpointTestHelper {
             }
         }
 
-        void discard() {
+        @Override
+        public void discard() {
             if (!isDiscarded) {
                 this.isDiscarded = true;
 

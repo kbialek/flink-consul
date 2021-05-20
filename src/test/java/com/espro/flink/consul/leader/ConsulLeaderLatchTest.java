@@ -64,8 +64,12 @@ public class ConsulLeaderLatchTest extends AbstractConsulTest {
 
 	@After
 	public void cleanup() {
-		sessionActivator1.stop();
-		sessionActivator2.stop();
+        if (sessionActivator1 != null) {
+            sessionActivator1.stop();
+        }
+        if (sessionActivator2 != null) {
+            sessionActivator2.stop();
+        }
 	}
 
 	@Test

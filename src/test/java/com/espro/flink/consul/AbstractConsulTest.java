@@ -29,6 +29,8 @@ public abstract class AbstractConsulTest {
 
     @After
     public void stopConsulProcess() {
-        consul.close();
+        if (consul != null) {
+            consul.close();
+        }
     }
 }
