@@ -22,12 +22,12 @@ public class ConsulRunningJobsRegistryTest extends AbstractConsulTest {
 	@Before
 	public void setup() {
 		client = new ConsulClient("localhost", consul.getHttpPort());
-		sessionActivator = new ConsulSessionActivator(client, Executors.newSingleThreadExecutor(), 10);
+        sessionActivator = new ConsulSessionActivator(() -> client, Executors.newSingleThreadExecutor(), 10);
 	}
 
 	@Test
 	public void testSetJobRunning() throws Exception {
-		ConsulRunningJobsRegistry registry = new ConsulRunningJobsRegistry(client, sessionActivator.getHolder(), jobRegistryPath);
+        ConsulRunningJobsRegistry registry = new ConsulRunningJobsRegistry(() -> client, sessionActivator.getHolder(), jobRegistryPath);
 
 		JobID jobID = JobID.generate();
 
@@ -37,7 +37,7 @@ public class ConsulRunningJobsRegistryTest extends AbstractConsulTest {
 
 	@Test
 	public void testSetJobFinished() throws Exception {
-		ConsulRunningJobsRegistry registry = new ConsulRunningJobsRegistry(client, sessionActivator.getHolder(), jobRegistryPath);
+        ConsulRunningJobsRegistry registry = new ConsulRunningJobsRegistry(() -> client, sessionActivator.getHolder(), jobRegistryPath);
 
 		JobID jobID = JobID.generate();
 
@@ -47,7 +47,7 @@ public class ConsulRunningJobsRegistryTest extends AbstractConsulTest {
 
 	@Test
 	public void testClearJob() throws Exception {
-		ConsulRunningJobsRegistry registry = new ConsulRunningJobsRegistry(client, sessionActivator.getHolder(), jobRegistryPath);
+        ConsulRunningJobsRegistry registry = new ConsulRunningJobsRegistry(() -> client, sessionActivator.getHolder(), jobRegistryPath);
 
 		JobID jobID = JobID.generate();
 

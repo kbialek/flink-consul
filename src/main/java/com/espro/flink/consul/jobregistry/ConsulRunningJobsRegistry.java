@@ -3,6 +3,7 @@ package com.espro.flink.consul.jobregistry;
 import static java.text.MessageFormat.format;
 
 import java.io.IOException;
+import java.util.function.Supplier;
 
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.runtime.highavailability.RunningJobsRegistry;
@@ -20,11 +21,11 @@ import com.espro.flink.consul.ConsulSessionHolder;
  */
 public final class ConsulRunningJobsRegistry implements RunningJobsRegistry {
 
-	private final ConsulClient client;
+    private final Supplier<ConsulClient> client;
 	private final ConsulSessionHolder sessionHolder;
 	private final String jobRegistryPath;
 
-	public ConsulRunningJobsRegistry(ConsulClient client, ConsulSessionHolder sessionHolder, String jobRegistryPath) {
+    public ConsulRunningJobsRegistry(Supplier<ConsulClient> client, ConsulSessionHolder sessionHolder, String jobRegistryPath) {
 		this.client = Preconditions.checkNotNull(client, "client");
 		this.sessionHolder = Preconditions.checkNotNull(sessionHolder, "sessionHolder");
 		this.jobRegistryPath = Preconditions.checkNotNull(jobRegistryPath, "jobRegistryPath");
@@ -43,19 +44,19 @@ public final class ConsulRunningJobsRegistry implements RunningJobsRegistry {
 
 	@Override
 	public JobSchedulingStatus getJobSchedulingStatus(JobID jobID) throws IOException {
-		GetValue value = client.getKVValue(path(jobID)).getValue();
+        GetValue value = client.get().getKVValue(path(jobID)).getValue();
 		return value == null ? JobSchedulingStatus.PENDING : JobSchedulingStatus.valueOf(value.getDecodedValue());
 	}
 
 	@Override
 	public void clearJob(JobID jobID) throws IOException {
-		client.deleteKVValue(path(jobID));
+        client.get().deleteKVValue(path(jobID));
 	}
 
 	private void storeJobStatus(JobID jobID, JobSchedulingStatus status) {
 		PutParams params = new PutParams();
 		params.setAcquireSession(sessionHolder.getSessionId());
-        Boolean jobStatusStorageResult = client.setKVValue(path(jobID), status.name(), params).getValue();
+        Boolean jobStatusStorageResult = client.get().setKVValue(path(jobID), status.name(), params).getValue();
         if (jobStatusStorageResult == null || !jobStatusStorageResult) {
             throw new IllegalStateException(format("Failed to store JobStatus({0}) for JobID: {1}", status, jobID));
 		}

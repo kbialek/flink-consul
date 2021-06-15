@@ -56,9 +56,9 @@ public class ConsulLeaderLatchTest extends AbstractConsulTest {
 	@Before
 	public void setup() {
 		client = new ConsulClient(String.format("localhost:%d", consul.getHttpPort()));
-		sessionActivator1 = new ConsulSessionActivator(client, executor, 10);
+        sessionActivator1 = new ConsulSessionActivator(() -> client, executor, 10);
 		sessionHolder1 = sessionActivator1.start();
-		sessionActivator2 = new ConsulSessionActivator(client, executor, 10);
+        sessionActivator2 = new ConsulSessionActivator(() -> client, executor, 10);
 		sessionHolder2 = sessionActivator2.start();
 	}
 
@@ -78,7 +78,7 @@ public class ConsulLeaderLatchTest extends AbstractConsulTest {
 
 		ConsulLeaderLatchListener listener = mock(ConsulLeaderLatchListener.class);
 
-        ConsulLeaderLatch latch = new ConsulLeaderLatch(client, executor, sessionHolder1, leaderKey, listener, waitTime);
+        ConsulLeaderLatch latch = new ConsulLeaderLatch(() -> client, executor, sessionHolder1, leaderKey, listener, waitTime);
 		latch.start();
 
         awaitLeaderElection();
@@ -98,9 +98,9 @@ public class ConsulLeaderLatchTest extends AbstractConsulTest {
 
 		LeaderRetrievalListener retrievalListener = mock(LeaderRetrievalListener.class);
 
-        ConsulLeaderLatch latch1 = new ConsulLeaderLatch(client, executor, sessionHolder1, leaderKey, listener1, waitTime);
-        ConsulLeaderLatch latch2 = new ConsulLeaderLatch(client, executor, sessionHolder2, leaderKey, listener2, waitTime);
-		ConsulLeaderRetriever leaderResolver = new ConsulLeaderRetriever(client, executor, leaderKey, retrievalListener, 1);
+        ConsulLeaderLatch latch1 = new ConsulLeaderLatch(() -> client, executor, sessionHolder1, leaderKey, listener1, waitTime);
+        ConsulLeaderLatch latch2 = new ConsulLeaderLatch(() -> client, executor, sessionHolder2, leaderKey, listener2, waitTime);
+        ConsulLeaderRetriever leaderResolver = new ConsulLeaderRetriever(() -> client, executor, leaderKey, retrievalListener, 1);
 
 		leaderResolver.start();
 		latch1.start();
@@ -132,7 +132,7 @@ public class ConsulLeaderLatchTest extends AbstractConsulTest {
 
 		ConsulLeaderLatchListener listener = mock(ConsulLeaderLatchListener.class);
 
-        ConsulLeaderLatch latch = new ConsulLeaderLatch(client, executor, sessionHolder1, leaderKey, listener, waitTime);
+        ConsulLeaderLatch latch = new ConsulLeaderLatch(() -> client, executor, sessionHolder1, leaderKey, listener, waitTime);
 		latch.start();
 
         awaitLeaderElection();
@@ -156,8 +156,8 @@ public class ConsulLeaderLatchTest extends AbstractConsulTest {
 		ConsulLeaderLatchListener listener = mock(ConsulLeaderLatchListener.class);
 		LeaderRetrievalListener retrievalListener = mock(LeaderRetrievalListener.class);
 
-        ConsulLeaderLatch latch = new ConsulLeaderLatch(client, executor, sessionHolder1, leaderKey, listener, waitTime);
-		ConsulLeaderRetriever leaderResolver = new ConsulLeaderRetriever(client, executor, leaderKey, retrievalListener, 1);
+        ConsulLeaderLatch latch = new ConsulLeaderLatch(() -> client, executor, sessionHolder1, leaderKey, listener, waitTime);
+        ConsulLeaderRetriever leaderResolver = new ConsulLeaderRetriever(() -> client, executor, leaderKey, retrievalListener, 1);
 
 		leaderResolver.start();
 		latch.start();

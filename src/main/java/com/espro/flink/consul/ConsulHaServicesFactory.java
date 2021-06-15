@@ -25,18 +25,11 @@ import org.apache.flink.runtime.blob.BlobUtils;
 import org.apache.flink.runtime.highavailability.HighAvailabilityServices;
 import org.apache.flink.runtime.highavailability.HighAvailabilityServicesFactory;
 
-import com.ecwid.consul.v1.ConsulClient;
-
 public class ConsulHaServicesFactory implements HighAvailabilityServicesFactory {
 
     @Override
     public HighAvailabilityServices createHAServices(Configuration configuration, Executor executor) throws Exception {
         BlobStoreService blobStoreService = BlobUtils.createBlobStoreFromConfig(configuration);
-
-        ConsulClient consulClient = ConsulClientFactory.createConsulClient(configuration);
-        return new ConsulHaServices(consulClient,
-                executor,
-                configuration,
-                blobStoreService);
+        return new ConsulHaServices(executor, configuration, blobStoreService);
     }
 }
