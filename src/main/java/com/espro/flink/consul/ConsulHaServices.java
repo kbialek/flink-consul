@@ -95,7 +95,7 @@ public class ConsulHaServices implements HighAvailabilityServices {
 
 		this.blobStore = checkNotNull(blobStoreService);
 
-        this.consulSessionActivator = new ConsulSessionActivator(clientProvider, this.executor, 10);
+        this.consulSessionActivator = new ConsulSessionActivator(clientProvider, 10);
 		this.consulSessionActivator.start();
 
         this.runningJobsRegistry = new ConsulRunningJobsRegistry(() -> ConsulClientFactory.createConsulClient(configuration),

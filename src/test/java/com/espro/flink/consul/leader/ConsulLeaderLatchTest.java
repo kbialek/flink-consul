@@ -56,9 +56,9 @@ public class ConsulLeaderLatchTest extends AbstractConsulTest {
 	@Before
 	public void setup() {
 		client = new ConsulClient(String.format("localhost:%d", consul.getHttpPort()));
-        sessionActivator1 = new ConsulSessionActivator(() -> client, executor, 10);
+        sessionActivator1 = new ConsulSessionActivator(() -> client, 10);
 		sessionHolder1 = sessionActivator1.start();
-        sessionActivator2 = new ConsulSessionActivator(() -> client, executor, 10);
+        sessionActivator2 = new ConsulSessionActivator(() -> client, 10);
 		sessionHolder2 = sessionActivator2.start();
 	}
 
