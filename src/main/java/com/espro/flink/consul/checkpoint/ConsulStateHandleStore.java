@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Supplier;
 
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.runtime.persistence.IntegerResourceVersion;
@@ -38,14 +39,15 @@ public class ConsulStateHandleStore<T extends Serializable> implements StateHand
 
     private static final Logger LOG = LoggerFactory.getLogger(ConsulStateHandleStore.class);
 
-    private final ConsulClient client;
+    private final Supplier<ConsulClient> clientProvider;
 
     private final RetrievableStateStorageHelper<T> storage;
 
     private final String checkpointBasePath;
 
-    public ConsulStateHandleStore(ConsulClient client, RetrievableStateStorageHelper<T> storage, String checkpointBasePath) {
-        this.client = client;
+    public ConsulStateHandleStore(Supplier<ConsulClient> clientProvider, RetrievableStateStorageHelper<T> storage,
+            String checkpointBasePath) {
+        this.clientProvider = clientProvider;
         this.storage = storage;
         this.checkpointBasePath = checkpointBasePath;
     }
@@ -60,7 +62,7 @@ public class ConsulStateHandleStore<T extends Serializable> implements StateHand
 
         try {
             byte[] serializedStoreHandle = InstantiationUtil.serializeObject(storeHandle);
-            success = client.setKVBinaryValue(pathInConsul, serializedStoreHandle).getValue();
+            success = clientProvider.get().setKVBinaryValue(pathInConsul, serializedStoreHandle).getValue();
             return storeHandle;
         } finally {
             if (!success) {
@@ -84,7 +86,7 @@ public class ConsulStateHandleStore<T extends Serializable> implements StateHand
 
         try {
             byte[] serializedStoreHandle = InstantiationUtil.serializeObject(newStateHandle);
-            success = client.setKVBinaryValue(pathInConsul, serializedStoreHandle).getValue();
+            success = clientProvider.get().setKVBinaryValue(pathInConsul, serializedStoreHandle).getValue();
         } finally {
             if (success) {
                 oldStateHandle.discardState();
@@ -98,7 +100,7 @@ public class ConsulStateHandleStore<T extends Serializable> implements StateHand
     public IntegerResourceVersion exists(String pathInConsul) throws Exception {
         checkNotNull(pathInConsul, "Path in Consul");
 
-        GetBinaryValue binaryValue = client.getKVBinaryValue(pathInConsul).getValue();
+        GetBinaryValue binaryValue = clientProvider.get().getKVBinaryValue(pathInConsul).getValue();
         if (binaryValue != null) {
             return IntegerResourceVersion.valueOf((int) binaryValue.getModifyIndex());
         } else {
@@ -116,7 +118,7 @@ public class ConsulStateHandleStore<T extends Serializable> implements StateHand
     public List<Tuple2<RetrievableStateHandle<T>, String>> getAllAndLock() throws Exception {
         List<Tuple2<RetrievableStateHandle<T>, String>> stateHandles = new ArrayList<>();
 
-        List<GetBinaryValue> binaryValues = client.getKVBinaryValues(checkpointBasePath).getValue();
+        List<GetBinaryValue> binaryValues = clientProvider.get().getKVBinaryValues(checkpointBasePath).getValue();
         if (binaryValues == null || binaryValues.isEmpty()) {
             LOG.debug("No state handles present in Consul for key prefix {}", checkpointBasePath);
             return Collections.emptyList();
@@ -134,7 +136,7 @@ public class ConsulStateHandleStore<T extends Serializable> implements StateHand
 
     @Override
     public Collection<String> getAllHandles() throws Exception {
-        List<String> keys = client.getKVKeysOnly(checkpointBasePath).getValue();
+        List<String> keys = clientProvider.get().getKVKeysOnly(checkpointBasePath).getValue();
         if (keys != null) {
             return keys;
         }
@@ -155,7 +157,7 @@ public class ConsulStateHandleStore<T extends Serializable> implements StateHand
         }
 
         try {
-            client.deleteKVValue(pathInConsul);
+            clientProvider.get().deleteKVValue(pathInConsul);
             LOG.info("Value for key {} in Consul was deleted.", pathInConsul);
         } catch (Exception e) {
             LOG.info("Error while deleting state handle for checkpoint {}", pathInConsul, e);
@@ -192,7 +194,7 @@ public class ConsulStateHandleStore<T extends Serializable> implements StateHand
     public void clearEntries() throws Exception {
         Collection<String> checkpointPathsInConsul = getAllHandles();
         for (String pathInConsul : checkpointPathsInConsul) {
-            client.deleteKVValue(pathInConsul);
+            clientProvider.get().deleteKVValue(pathInConsul);
             LOG.info("Value for key {} in Consul was deleted.", pathInConsul);
         }
     }
@@ -209,7 +211,7 @@ public class ConsulStateHandleStore<T extends Serializable> implements StateHand
 
     private RetrievableStateHandle<T> get(String path) {
         try {
-            GetBinaryValue binaryValue = client.getKVBinaryValue(path).getValue();
+            GetBinaryValue binaryValue = clientProvider.get().getKVBinaryValue(path).getValue();
 
             return InstantiationUtil.<RetrievableStateHandle<T>>deserializeObject(
                     binaryValue.getValue(),

@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.apache.flink.api.common.JobID;
@@ -35,12 +36,13 @@ public final class ConsulSubmittedJobGraphStore implements JobGraphStore {
 
     private static final Logger LOG = LoggerFactory.getLogger(ConsulSubmittedJobGraphStore.class);
 
-	private final ConsulClient client;
+    private final Supplier<ConsulClient> client;
 	private final String jobgraphsPath;
     private final RetrievableStateStorageHelper<JobGraph> jobGraphStateStorage;
     private JobGraphListener listener;
 
-    public ConsulSubmittedJobGraphStore(Configuration configuration, ConsulClient client, String jobgraphsPath) throws IOException {
+    public ConsulSubmittedJobGraphStore(Configuration configuration, Supplier<ConsulClient> client, String jobgraphsPath)
+            throws IOException {
 		this.client = Preconditions.checkNotNull(client, "client");
 		this.jobgraphsPath = Preconditions.checkNotNull(jobgraphsPath, "jobgraphsPath");
         Preconditions.checkArgument(jobgraphsPath.endsWith("/"), "jobgraphsPath must end with /");
@@ -68,7 +70,7 @@ public final class ConsulSubmittedJobGraphStore implements JobGraphStore {
             // smaller than the state itself.
             byte[] bytes = InstantiationUtil.serializeObject(stateHandle);
             LOG.debug("{} bytes will be written to Consul.", bytes.length);
-            Boolean response = client.setKVBinaryValue(path(jobGraph.getJobID()), bytes).getValue();
+            Boolean response = client.get().setKVBinaryValue(path(jobGraph.getJobID()), bytes).getValue();
             success = response == null ? false : response;
         } finally {
             // Cleanup the state handle if it was not written to Consul
@@ -85,7 +87,7 @@ public final class ConsulSubmittedJobGraphStore implements JobGraphStore {
     }
 
     private RetrievableStateHandle<JobGraph> getStateHandle(JobID jobId) throws FlinkException {
-        GetBinaryValue value = client.getKVBinaryValue(path(jobId)).getValue();
+        GetBinaryValue value = client.get().getKVBinaryValue(path(jobId)).getValue();
 		if (value != null) {
 			try {
                 return InstantiationUtil.deserializeObject(value.getValue(),
@@ -108,7 +110,7 @@ public final class ConsulSubmittedJobGraphStore implements JobGraphStore {
         }
 
         // First remove state from Consul (Independent of errors when reading the state handler)
-        client.deleteKVValue(path(jobId));
+        client.get().deleteKVValue(path(jobId));
 
         if (stateHandle != null) {
             stateHandle.discardState();
@@ -119,7 +121,7 @@ public final class ConsulSubmittedJobGraphStore implements JobGraphStore {
 
 	@Override
 	public Collection<JobID> getJobIds() throws Exception {
-		List<String> value = client.getKVKeysOnly(jobgraphsPath).getValue();
+        List<String> value = client.get().getKVKeysOnly(jobgraphsPath).getValue();
 		if (value != null) {
 			return value.stream()
 				.map(id -> id.split("/"))

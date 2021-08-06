@@ -19,6 +19,7 @@
 package com.espro.flink.consul.leader;
 
 import java.util.concurrent.Executor;
+import java.util.function.Supplier;
 
 import org.apache.flink.runtime.leaderretrieval.LeaderRetrievalListener;
 import org.apache.flink.util.Preconditions;
@@ -34,7 +35,7 @@ final class ConsulLeaderRetriever {
 
 	private static final Logger LOG = LoggerFactory.getLogger(ConsulLeaderRetriever.class);
 
-	private final ConsulClient client;
+    private final Supplier<ConsulClient> clientProvider;
 
 	private final Executor executor;
 
@@ -51,17 +52,17 @@ final class ConsulLeaderRetriever {
 	private final int waitTime;
 
 	/**
-	 * @param client    Consul client
-	 * @param executor  Executor to run background tasks
-	 * @param leaderKey key in Consul KV store
-	 * @param waitTime  Consul blocking read timeout (in seconds)
-	 */
-	public ConsulLeaderRetriever(ConsulClient client,
+     * @param clientProvider provides a Consul client
+     * @param executor Executor to run background tasks
+     * @param leaderKey key in Consul KV store
+     * @param waitTime Consul blocking read timeout (in seconds)
+     */
+    public ConsulLeaderRetriever(Supplier<ConsulClient> clientProvider,
 								 Executor executor,
 								 String leaderKey,
 								 LeaderRetrievalListener listener,
 								 int waitTime) {
-		this.client = Preconditions.checkNotNull(client, "client");
+        this.clientProvider = Preconditions.checkNotNull(clientProvider, "client");
 		this.executor = Preconditions.checkNotNull(executor, "executor");
 		this.leaderKey = Preconditions.checkNotNull(leaderKey, "leaderKey");
 		this.listener = Preconditions.checkNotNull(listener, "listener");
@@ -109,7 +110,7 @@ final class ConsulLeaderRetriever {
 			.setIndex(leaderKeyIndex)
 			.setWaitTime(waitTime)
 			.build();
-		Response<GetBinaryValue> leaderKeyValue = client.getKVBinaryValue(leaderKey, queryParams);
+        Response<GetBinaryValue> leaderKeyValue = clientProvider.get().getKVBinaryValue(leaderKey, queryParams);
 		return leaderKeyValue.getValue();
 	}
 

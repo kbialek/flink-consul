@@ -21,6 +21,7 @@ package com.espro.flink.consul.leader;
 import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 import org.apache.flink.util.Preconditions;
 import org.slf4j.Logger;
@@ -38,7 +39,7 @@ final class ConsulLeaderLatch {
 
 	private static final Logger LOG = LoggerFactory.getLogger(ConsulLeaderLatch.class);
 
-	private final ConsulClient client;
+    private final Supplier<ConsulClient> clientProvider;
 
 	private final Executor executor;
 
@@ -62,19 +63,19 @@ final class ConsulLeaderLatch {
     private final int waitTimeInSeconds;
 
 	/**
-	 * @param client      Consul client
-	 * @param executor    Executor to run background tasks
-	 * @param leaderKey   key in Consul KV store
-	 * @param nodeAddress leadership changes are reported to this contender
-	 * @param waitTime    Consul blocking read timeout (in seconds)
-	 */
-	public ConsulLeaderLatch(ConsulClient client,
+     * @param clientProvider provides a Consul client
+     * @param executor Executor to run background tasks
+     * @param leaderKey key in Consul KV store
+     * @param nodeAddress leadership changes are reported to this contender
+     * @param waitTime Consul blocking read timeout (in seconds)
+     */
+    public ConsulLeaderLatch(Supplier<ConsulClient> clientProvider,
 							 Executor executor,
 							 ConsulSessionHolder sessionHolder,
 							 String leaderKey,
 							 ConsulLeaderLatchListener listener,
 							 int waitTime) {
-		this.client = Preconditions.checkNotNull(client, "client");
+		this.clientProvider = Preconditions.checkNotNull(clientProvider, "client");
 		this.executor = Preconditions.checkNotNull(executor, "executor");
 		this.sessionHolder = Preconditions.checkNotNull(sessionHolder, "sessionHolder");
 		this.leaderKey = Preconditions.checkNotNull(leaderKey, "leaderKey");
@@ -142,7 +143,7 @@ final class ConsulLeaderLatch {
 			.setIndex(leaderKeyIndex)
                 .setWaitTime(waitTimeInSeconds)
 			.build();
-		Response<GetBinaryValue> leaderKeyValue = client.getKVBinaryValue(leaderKey, queryParams);
+        Response<GetBinaryValue> leaderKeyValue = clientProvider.get().getKVBinaryValue(leaderKey, queryParams);
 		return leaderKeyValue.getValue();
 	}
 
@@ -151,7 +152,7 @@ final class ConsulLeaderLatch {
 		putParams.setAcquireSession(sessionHolder.getSessionId());
 		try {
             ConsulLeaderData data = new ConsulLeaderData(nodeAddress, flinkSessionId);
-            Boolean response = client.setKVBinaryValue(leaderKey, data.toBytes(), putParams).getValue();
+            Boolean response = clientProvider.get().setKVBinaryValue(leaderKey, data.toBytes(), putParams).getValue();
             return response != null ? response : false;
 		} catch (OperationException ex) {
             LOG.error("Error while writing leader key for {} with session id {} to Consul.", nodeAddress, flinkSessionId);
@@ -163,7 +164,7 @@ final class ConsulLeaderLatch {
 		PutParams putParams = new PutParams();
 		putParams.setReleaseSession(sessionHolder.getSessionId());
 		try {
-			return client.setKVBinaryValue(leaderKey, new byte[0], putParams).getValue();
+            return clientProvider.get().setKVBinaryValue(leaderKey, new byte[0], putParams).getValue();
 		} catch (OperationException ex) {
             LOG.error("Error while releasing leader key for session {}.", sessionHolder.getSessionId());
 			return false;

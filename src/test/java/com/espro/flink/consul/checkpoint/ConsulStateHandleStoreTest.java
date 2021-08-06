@@ -62,7 +62,7 @@ public class ConsulStateHandleStoreTest extends AbstractConsulTest {
         JobID jobID = JobID.generate();
 
         // GIVEN ConsulStateHandleStore
-        ConsulStateHandleStore<CompletedCheckpoint> store = new ConsulStateHandleStore<>(client, storage, FLINK_CHECKPOINTS_PATH);
+        ConsulStateHandleStore<CompletedCheckpoint> store = new ConsulStateHandleStore<>(() -> client, storage, FLINK_CHECKPOINTS_PATH);
 
         // GIVEN checkpoint
         CompletedCheckpoint checkpoint = addCheckpoint(sharedStateRegistry, jobID, store);
@@ -81,7 +81,7 @@ public class ConsulStateHandleStoreTest extends AbstractConsulTest {
         JobID jobID = JobID.generate();
 
         // GIVEN ConsulStateHandleStore
-        ConsulStateHandleStore<CompletedCheckpoint> store = new ConsulStateHandleStore<>(client, storage, FLINK_CHECKPOINTS_PATH);
+        ConsulStateHandleStore<CompletedCheckpoint> store = new ConsulStateHandleStore<>(() -> client, storage, FLINK_CHECKPOINTS_PATH);
 
         // GIVEN 10 checkpoints
         Set<CompletedCheckpoint> checkpoints = addCheckpoints(10, sharedStateRegistry, jobID, store);
@@ -103,7 +103,7 @@ public class ConsulStateHandleStoreTest extends AbstractConsulTest {
     @Test
     public void testGetAllAndLock_NoHandlesPresent() throws Exception {
         // GIVEN ConsulStateHandleStore
-        ConsulStateHandleStore<CompletedCheckpoint> store = new ConsulStateHandleStore<>(client, storage, "foo");
+        ConsulStateHandleStore<CompletedCheckpoint> store = new ConsulStateHandleStore<>(() -> client, storage, "foo");
 
         // WHEN getting all state handle tuples from ConsulStateHandleStore
         List<Tuple2<RetrievableStateHandle<CompletedCheckpoint>, String>> stateHandleTuples = store.getAllAndLock();
@@ -119,7 +119,7 @@ public class ConsulStateHandleStoreTest extends AbstractConsulTest {
         JobID jobID = JobID.generate();
 
         // GIVEN ConsulStateHandleStore
-        ConsulStateHandleStore<CompletedCheckpoint> store = new ConsulStateHandleStore<>(client, storage, FLINK_CHECKPOINTS_PATH);
+        ConsulStateHandleStore<CompletedCheckpoint> store = new ConsulStateHandleStore<>(() -> client, storage, FLINK_CHECKPOINTS_PATH);
 
         // GIVEN 10 checkpoints
         Set<CompletedCheckpoint> checkpoints = addCheckpoints(10, sharedStateRegistry, jobID, store);
@@ -139,7 +139,7 @@ public class ConsulStateHandleStoreTest extends AbstractConsulTest {
     @Test
     public void testGetAllHandles_NoHandlesPresent() throws Exception {
         // GIVEN ConsulStateHandleStore
-        ConsulStateHandleStore<CompletedCheckpoint> store = new ConsulStateHandleStore<>(client, storage, "foo");
+        ConsulStateHandleStore<CompletedCheckpoint> store = new ConsulStateHandleStore<>(() -> client, storage, "foo");
 
         // WHEN getting all handles from ConsulStateHandleStore
         Collection<String> allHandles = store.getAllHandles();
@@ -155,7 +155,7 @@ public class ConsulStateHandleStoreTest extends AbstractConsulTest {
         JobID jobID = JobID.generate();
 
         // GIVEN ConsulStateHandleStore
-        ConsulStateHandleStore<CompletedCheckpoint> store = new ConsulStateHandleStore<>(client, storage, FLINK_CHECKPOINTS_PATH);
+        ConsulStateHandleStore<CompletedCheckpoint> store = new ConsulStateHandleStore<>(() -> client, storage, FLINK_CHECKPOINTS_PATH);
 
         // GIVEN checkpoint
         CompletedCheckpoint checkpoint = addCheckpoint(sharedStateRegistry, jobID, store);
@@ -177,7 +177,7 @@ public class ConsulStateHandleStoreTest extends AbstractConsulTest {
         JobID jobID = JobID.generate();
 
         // GIVEN ConsulStateHandleStore
-        ConsulStateHandleStore<CompletedCheckpoint> store = new ConsulStateHandleStore<>(client, storage, FLINK_CHECKPOINTS_PATH);
+        ConsulStateHandleStore<CompletedCheckpoint> store = new ConsulStateHandleStore<>(() -> client, storage, FLINK_CHECKPOINTS_PATH);
 
         // GIVEN 10 checkpoints
         Set<CompletedCheckpoint> checkpoints = addCheckpoints(10, sharedStateRegistry, jobID, store);
@@ -198,7 +198,7 @@ public class ConsulStateHandleStoreTest extends AbstractConsulTest {
         JobID jobID = JobID.generate();
 
         // GIVEN ConsulStateHandleStore
-        ConsulStateHandleStore<CompletedCheckpoint> store = new ConsulStateHandleStore<>(client, storage, FLINK_CHECKPOINTS_PATH);
+        ConsulStateHandleStore<CompletedCheckpoint> store = new ConsulStateHandleStore<>(() -> client, storage, FLINK_CHECKPOINTS_PATH);
 
         // GIVEN checkpoint
         CompletedCheckpoint checkpoint = addCheckpoint(sharedStateRegistry, jobID, store);

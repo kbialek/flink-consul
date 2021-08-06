@@ -20,6 +20,7 @@ package com.espro.flink.consul.leader;
 
 import java.util.UUID;
 import java.util.concurrent.Executor;
+import java.util.function.Supplier;
 
 import org.apache.flink.runtime.leaderelection.LeaderContender;
 import org.apache.flink.runtime.leaderelection.LeaderElectionService;
@@ -44,7 +45,7 @@ public class ConsulLeaderElectionService implements LeaderElectionService {
 	/**
 	 * Client to the Consul quorum
 	 */
-	private final ConsulClient client;
+    private final Supplier<ConsulClient> clientProvider;
 
 	/**
 	 * Consul path of the node which stores the current leader information
@@ -82,16 +83,17 @@ public class ConsulLeaderElectionService implements LeaderElectionService {
 	};
 
 	/**
-	 * Creates a {@link ConsulLeaderElectionService} object.
-	 *  @param client     Client which is connected to the Consul quorum
-	 * @param leaderPath ZooKeeper node path for the node which stores the current leader information
-	 * @param sessionHolder
-	 */
-	public ConsulLeaderElectionService(ConsulClient client,
+     * Creates a {@link ConsulLeaderElectionService} object.
+     *
+     * @param clientProvider provides a Client which is connected to the Consul quorum
+     * @param leaderPath ZooKeeper node path for the node which stores the current leader information
+     * @param sessionHolder
+     */
+    public ConsulLeaderElectionService(Supplier<ConsulClient> clientProvider,
 									   Executor executor,
 									   ConsulSessionHolder sessionHolder,
 									   String leaderPath) {
-		this.client = Preconditions.checkNotNull(client, "Consul client");
+		this.clientProvider = Preconditions.checkNotNull(clientProvider, "Consul client");
 		this.leaderPath = Preconditions.checkNotNull(leaderPath, "leaderPath");
 		this.executor = Preconditions.checkNotNull(executor, "executor");
 		this.sessionHolder = Preconditions.checkNotNull(sessionHolder, "sessionHolder");
@@ -121,7 +123,7 @@ public class ConsulLeaderElectionService implements LeaderElectionService {
 
 			leaderContender = contender;
 
-            leaderLatch = new ConsulLeaderLatch(client, executor, sessionHolder, leaderPath, listener, 10);
+            leaderLatch = new ConsulLeaderLatch(clientProvider, executor, sessionHolder, leaderPath, listener, 10);
 			leaderLatch.start();
 
 			running = true;

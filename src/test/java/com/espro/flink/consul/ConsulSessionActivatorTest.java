@@ -30,7 +30,7 @@ public class ConsulSessionActivatorTest extends AbstractConsulTest {
 	public void testSessionLifecycle() throws Exception {
 		Executor executor = Executors.newFixedThreadPool(2);
 		ConsulClient spiedClient = spy(client);
-		ConsulSessionActivator cse = new ConsulSessionActivator(spiedClient, executor, 10);
+        ConsulSessionActivator cse = new ConsulSessionActivator(() -> spiedClient, executor, 10);
 		ConsulSessionHolder holder = cse.start();
 		Thread.sleep(1000);
 
