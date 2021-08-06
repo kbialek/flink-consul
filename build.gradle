@@ -7,7 +7,7 @@ version '1.2.0-SNAPSHOT'
 
 apply plugin: 'java'
 
-def flinkVersion = "1.11.2"
+def flinkVersion = "1.12.3"
 def scalaVersion = "2.12"
 
 repositories {
