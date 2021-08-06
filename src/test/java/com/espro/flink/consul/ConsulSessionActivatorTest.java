@@ -7,9 +7,6 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
-
 import org.junit.Before;
 import org.junit.Test;
 
@@ -28,9 +25,8 @@ public class ConsulSessionActivatorTest extends AbstractConsulTest {
 
 	@Test
 	public void testSessionLifecycle() throws Exception {
-		Executor executor = Executors.newFixedThreadPool(2);
 		ConsulClient spiedClient = spy(client);
-        ConsulSessionActivator cse = new ConsulSessionActivator(() -> spiedClient, executor, 10);
+        ConsulSessionActivator cse = new ConsulSessionActivator(() -> spiedClient, 10);
 		ConsulSessionHolder holder = cse.start();
 		Thread.sleep(1000);
 

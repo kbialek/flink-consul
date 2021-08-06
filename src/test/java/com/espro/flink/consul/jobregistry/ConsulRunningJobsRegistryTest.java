@@ -2,8 +2,6 @@ package com.espro.flink.consul.jobregistry;
 
 import static org.junit.Assert.assertEquals;
 
-import java.util.concurrent.Executors;
-
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.runtime.highavailability.RunningJobsRegistry;
 import org.junit.Before;
@@ -22,7 +20,7 @@ public class ConsulRunningJobsRegistryTest extends AbstractConsulTest {
 	@Before
 	public void setup() {
 		client = new ConsulClient("localhost", consul.getHttpPort());
-        sessionActivator = new ConsulSessionActivator(() -> client, Executors.newSingleThreadExecutor(), 10);
+        sessionActivator = new ConsulSessionActivator(() -> client, 10);
 	}
 
 	@Test
