@@ -7,8 +7,7 @@ version '1.3.1-sw'
 
 apply plugin: 'java'
 
-def flinkVersion = "1.13.5"
-def scalaVersion = "2.12"
+def flinkVersion = "1.15.0"
 
 repositories {
     mavenLocal()
@@ -22,14 +21,14 @@ configurations {
 dependencies {
     compile 'com.ecwid.consul:consul-api:1.4.5'
     compile 'org.apache.httpcomponents:httpclient:4.5.5'
-    compile "org.apache.flink:flink-runtime_$scalaVersion:$flinkVersion"
+    compile "org.apache.flink:flink-runtime:$flinkVersion"
 
     testCompile "junit:junit:4.12"
     testCompile "org.mockito:mockito-core:1.10.19"
     testCompile 'com.pszymczyk.consul:embedded-consul:2.1.4'
     testCompile 'org.awaitility:awaitility:4.0.3'
-    testCompile "org.apache.flink:flink-runtime_$scalaVersion:$flinkVersion:tests"
-    testCompile "org.apache.flink:flink-test-utils_$scalaVersion:$flinkVersion"
+    testCompile "org.apache.flink:flink-runtime:$flinkVersion"
+    testCompile "org.apache.flink:flink-test-utils:$flinkVersion"
 
     shadow 'com.ecwid.consul:consul-api:1.4.5'
 }

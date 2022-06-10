@@ -53,7 +53,7 @@ public class CheckpointTestHelper {
             operatorState.putState(i, subtaskState);
         }
 
-        operatorState.registerSharedStates(sharedStateRegistry);
+        operatorState.registerSharedStates(sharedStateRegistry, id);
 
         return new TestCompletedCheckpoint(new JobID(), id, 0, operatorGroupState, props);
     }
@@ -98,12 +98,11 @@ public class CheckpointTestHelper {
                 CheckpointProperties props) {
 
             super(jobId, checkpointId, timestamp, Long.MAX_VALUE, operatorGroupState, null, props,
-                    new TestCompletedCheckpointStorageLocation());
+                    new TestCompletedCheckpointStorageLocation(), null);
         }
 
-        @Override
         public boolean discardOnSubsume() throws Exception {
-            if (super.discardOnSubsume()) {
+            if (super.shouldBeDiscardedOnSubsume()) {
                 discard();
                 return true;
             } else {
@@ -111,9 +110,8 @@ public class CheckpointTestHelper {
             }
         }
 
-        @Override
         public boolean discardOnShutdown(JobStatus jobStatus) throws Exception {
-            if (super.discardOnShutdown(jobStatus)) {
+            if (super.shouldBeDiscardedOnSubsume()) {
                 discard();
                 return true;
             } else {
@@ -121,7 +119,6 @@ public class CheckpointTestHelper {
             }
         }
 
-        @Override
         public void discard() {
             if (!isDiscarded) {
                 this.isDiscarded = true;

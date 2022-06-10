@@ -31,7 +31,7 @@ import org.apache.flink.runtime.blob.BlobStore;
 import org.apache.flink.runtime.blob.BlobStoreService;
 import org.apache.flink.runtime.checkpoint.CheckpointRecoveryFactory;
 import org.apache.flink.runtime.highavailability.HighAvailabilityServices;
-import org.apache.flink.runtime.highavailability.RunningJobsRegistry;
+import org.apache.flink.runtime.highavailability.JobResultStore;
 import org.apache.flink.runtime.jobmanager.JobGraphStore;
 import org.apache.flink.runtime.leaderelection.LeaderElectionService;
 import org.apache.flink.runtime.leaderretrieval.LeaderRetrievalService;
@@ -76,7 +76,7 @@ public class ConsulHaServices implements HighAvailabilityServices {
 	/**
 	 * The Consul based running jobs registry
 	 */
-	private final RunningJobsRegistry runningJobsRegistry;
+	private final JobResultStore runningJobsRegistry;
 
 	/**
 	 * Store for arbitrary blobs
@@ -164,7 +164,7 @@ public class ConsulHaServices implements HighAvailabilityServices {
 	}
 
 	@Override
-	public RunningJobsRegistry getRunningJobsRegistry() throws Exception {
+	public JobResultStore getJobResultStore() throws Exception {
 		return runningJobsRegistry;
 	}
 

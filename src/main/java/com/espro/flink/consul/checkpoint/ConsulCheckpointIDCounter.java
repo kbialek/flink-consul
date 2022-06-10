@@ -1,5 +1,6 @@
 package com.espro.flink.consul.checkpoint;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
 import org.apache.flink.api.common.JobID;
@@ -10,6 +11,7 @@ import org.apache.flink.util.Preconditions;
 import com.ecwid.consul.v1.ConsulClient;
 import com.ecwid.consul.v1.kv.model.GetValue;
 import com.ecwid.consul.v1.kv.model.PutParams;
+import org.apache.flink.util.concurrent.FutureUtils;
 
 final class ConsulCheckpointIDCounter implements CheckpointIDCounter {
 
@@ -31,10 +33,11 @@ final class ConsulCheckpointIDCounter implements CheckpointIDCounter {
 	}
 
 	@Override
-	public void shutdown(JobStatus jobStatus) throws Exception {
+	public CompletableFuture<Void> shutdown(JobStatus jobStatus) {
 		if (jobStatus.isGloballyTerminalState()) {
 			removeCounter();
 		}
+		return FutureUtils.completedVoidFuture();
 	}
 
 	@Override
