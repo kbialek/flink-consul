@@ -3,7 +3,7 @@ plugins {
 }
 
 group 'com.espro.flink'
-version '1.4.0-sw'
+version '1.4.1-sw'
 
 apply plugin: 'java'
 
