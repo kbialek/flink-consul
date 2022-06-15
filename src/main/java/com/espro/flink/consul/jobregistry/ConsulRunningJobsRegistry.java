@@ -3,7 +3,11 @@ package com.espro.flink.consul.jobregistry;
 import static java.text.MessageFormat.format;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -13,12 +17,12 @@ import org.apache.flink.runtime.highavailability.JobResultEntry;
 import org.apache.flink.runtime.highavailability.JobResultStore;
 import org.apache.flink.runtime.jobmaster.JobResult;
 import org.apache.flink.util.Preconditions;
+import org.apache.flink.util.StringUtils;
 
 import com.ecwid.consul.v1.ConsulClient;
 import com.ecwid.consul.v1.kv.model.GetValue;
 import com.ecwid.consul.v1.kv.model.PutParams;
 import com.espro.flink.consul.ConsulSessionHolder;
-import org.apache.flink.util.StringUtils;
 
 /**
  * Stores the status of a Flink Job in Consul.
@@ -105,6 +109,9 @@ public final class ConsulRunningJobsRegistry implements JobResultStore {
 	}
 
 	private static Set<String> convertToSet(String jobs) {
+        if (jobs == null || jobs.isEmpty()) {
+            return Collections.emptySet();
+        }
 		return Arrays.stream(jobs.split(COMMA_SEPARATOR)).collect(Collectors.toSet());
 	}
 }
