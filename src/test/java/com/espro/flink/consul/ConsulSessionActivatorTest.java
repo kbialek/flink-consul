@@ -26,7 +26,7 @@ public class ConsulSessionActivatorTest extends AbstractConsulTest {
 	@Test
 	public void testSessionLifecycle() throws Exception {
 		ConsulClient spiedClient = spy(client);
-        ConsulSessionActivator cse = new ConsulSessionActivator(() -> spiedClient, 10);
+        ConsulSessionActivator cse = new ConsulSessionActivator(() -> spiedClient, 10, null);
 		ConsulSessionHolder holder = cse.start();
 		Thread.sleep(1000);
 

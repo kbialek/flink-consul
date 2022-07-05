@@ -1,11 +1,14 @@
 package com.espro.flink.consul;
 
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
+import com.espro.flink.consul.metric.ConsulMetricService;
+import com.espro.flink.consul.utils.TimeUtils;
 import org.apache.flink.util.Preconditions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,16 +31,18 @@ public final class ConsulSessionActivator {
     private final Duration sessionTtl;
 	private volatile boolean running;
 	private final ConsulSessionHolder holder = new ConsulSessionHolder();
+	private final ConsulMetricService consulMetricService;
 
 	/**
      * @param clientProvider provides Consul client
-     * @param executor runs session keep-alive background task
-     * @param sessionTtl session ttl in seconds
+	 * @param sessionTtl session ttl in seconds
+	 * @param consulMetricService provides Consul metric service
      */
-    public ConsulSessionActivator(Supplier<ConsulClient> clientProvider, int sessionTtl) {
+    public ConsulSessionActivator(Supplier<ConsulClient> clientProvider, int sessionTtl, ConsulMetricService consulMetricService) {
         this.clientProvider = Preconditions.checkNotNull(clientProvider, "client");
         this.executorService = Executors.newSingleThreadScheduledExecutor();
         this.sessionTtl = Duration.ofSeconds(sessionTtl);
+        this.consulMetricService = consulMetricService;
 	}
 
 	public ConsulSessionHolder start() {
@@ -63,6 +68,10 @@ public final class ConsulSessionActivator {
         LOG.info("Stopped ConsulSessionActivator");
 	}
 
+	public ConsulSessionHolder getHolder() {
+		return holder;
+	}
+
 	private void doRun() {
         if (running) {
             createOrRenewConsulSession();
@@ -84,13 +93,18 @@ public final class ConsulSessionActivator {
 		NewSession newSession = new NewSession();
 		newSession.setName("flink");
         newSession.setTtl(String.format("%ds", Math.max(10, sessionTtl.toMillis() / 1000)));
-        holder.setSessionId(clientProvider.get().sessionCreate(newSession, QueryParams.DEFAULT).getValue());
+		LocalDateTime startTime = LocalDateTime.now();
+		String value = clientProvider.get().sessionCreate(newSession, QueryParams.DEFAULT).getValue();
+		setMetricValues(startTime);
+		holder.setSessionId(value);
         Log.info("New consul session is created {}", holder.getSessionId());
 	}
 
 	private void renewConsulSession() {
 		try {
+			LocalDateTime startTime = LocalDateTime.now();
             clientProvider.get().renewSession(holder.getSessionId(), QueryParams.DEFAULT);
+			setMetricValues(startTime);
         } catch (OperationException e) {
             LOG.warn("Consul session renew failed, a new session is created.", e);
             createConsulSession();
@@ -101,13 +115,18 @@ public final class ConsulSessionActivator {
 
 	private void destroyConsulSession() {
 		try {
+			LocalDateTime startTime = LocalDateTime.now();
             clientProvider.get().sessionDestroy(holder.getSessionId(), QueryParams.DEFAULT);
+			setMetricValues(startTime);
 		} catch (Exception e) {
 			LOG.error("Consul session destroy failed", e);
 		}
 	}
 
-	public ConsulSessionHolder getHolder() {
-		return holder;
+	private void setMetricValues(LocalDateTime requestStartTime) {
+		long durationTime = TimeUtils.getDurationTime(requestStartTime);
+		if (consulMetricService != null) {
+			this.consulMetricService.setMetricValues(durationTime);
+		}
 	}
 }

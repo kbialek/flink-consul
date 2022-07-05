@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.concurrent.Executor;
 import java.util.function.Supplier;
 
+import com.espro.flink.consul.metric.ConsulMetricService;
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.runtime.checkpoint.CheckpointIDCounter;
@@ -28,11 +29,13 @@ public final class ConsulCheckpointRecoveryFactory implements CheckpointRecovery
     private final Supplier<ConsulClient> client;
 	private final Configuration configuration;
 	private final Executor executor;
+	private final ConsulMetricService consulMetricService;
 
-	public ConsulCheckpointRecoveryFactory(Supplier<ConsulClient> client, Configuration configuration, Executor executor) {
+	public ConsulCheckpointRecoveryFactory(Supplier<ConsulClient> client, Configuration configuration, Executor executor, ConsulMetricService consulMetricService) {
 		this.executor = executor;
 		this.client = Preconditions.checkNotNull(client, "client");
 		this.configuration = Preconditions.checkNotNull(configuration, "configuration");
+		this.consulMetricService = consulMetricService;
 	}
 
 	private CompletedCheckpointStore createCheckpointStore(JobID jobId, int maxNumberOfCheckpointsToRetain, SharedStateRegistryFactory sharedStateRegistryFactory, Executor ioExecutor, RestoreMode restoreMode) throws Exception {
@@ -58,7 +61,7 @@ public final class ConsulCheckpointRecoveryFactory implements CheckpointRecovery
 
 	@Override
 	public CheckpointIDCounter createCheckpointIDCounter(JobID jobId) throws Exception {
-		return new ConsulCheckpointIDCounter(client, checkpointCountersPath(), jobId);
+		return new ConsulCheckpointIDCounter(client, checkpointCountersPath(), jobId, consulMetricService);
 	}
 
 	private String checkpointCountersPath() {

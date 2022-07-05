@@ -22,6 +22,7 @@ import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.function.Supplier;
 
+import com.espro.flink.consul.metric.ConsulMetricService;
 import org.apache.flink.runtime.leaderelection.LeaderContender;
 import org.apache.flink.runtime.leaderelection.LeaderElectionService;
 import org.apache.flink.util.Preconditions;
@@ -63,6 +64,8 @@ public class ConsulLeaderElectionService implements LeaderElectionService {
 
 	private final ConsulSessionHolder sessionHolder;
 
+	private final ConsulMetricService consulMetricService;
+
 	/**
 	 * The leader contender which applies for leadership
 	 */
@@ -92,11 +95,13 @@ public class ConsulLeaderElectionService implements LeaderElectionService {
     public ConsulLeaderElectionService(Supplier<ConsulClient> clientProvider,
 									   Executor executor,
 									   ConsulSessionHolder sessionHolder,
-									   String leaderPath) {
+									   String leaderPath,
+									   ConsulMetricService consulMetricService) {
 		this.clientProvider = Preconditions.checkNotNull(clientProvider, "Consul client");
 		this.leaderPath = Preconditions.checkNotNull(leaderPath, "leaderPath");
 		this.executor = Preconditions.checkNotNull(executor, "executor");
 		this.sessionHolder = Preconditions.checkNotNull(sessionHolder, "sessionHolder");
+		this.consulMetricService = consulMetricService;
 
 		confirmedLeaderSessionID = null;
 		leaderContender = null;
@@ -123,7 +128,7 @@ public class ConsulLeaderElectionService implements LeaderElectionService {
 
 			leaderContender = contender;
 
-            leaderLatch = new ConsulLeaderLatch(clientProvider, executor, sessionHolder, leaderPath, listener, 10);
+            leaderLatch = new ConsulLeaderLatch(clientProvider, executor, sessionHolder, leaderPath, listener, 10, consulMetricService);
 			leaderLatch.start();
 
 			running = true;

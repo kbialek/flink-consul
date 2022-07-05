@@ -3,6 +3,7 @@ package com.espro.flink.consul.jobregistry;
 import static java.text.MessageFormat.format;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -11,6 +12,8 @@ import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import com.espro.flink.consul.metric.ConsulMetricService;
+import com.espro.flink.consul.utils.TimeUtils;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.runtime.highavailability.JobResultEntry;
@@ -36,12 +39,14 @@ public final class ConsulRunningJobsRegistry implements JobResultStore {
     private final Supplier<ConsulClient> client;
 	private final ConsulSessionHolder sessionHolder;
 	private final String jobRegistryPath;
+	private final ConsulMetricService consulMetricService;
 
-    public ConsulRunningJobsRegistry(Supplier<ConsulClient> client, ConsulSessionHolder sessionHolder, String jobRegistryPath) {
+    public ConsulRunningJobsRegistry(Supplier<ConsulClient> client, ConsulSessionHolder sessionHolder, String jobRegistryPath, ConsulMetricService consulMetricService) {
 		this.client = Preconditions.checkNotNull(client, "client");
 		this.sessionHolder = Preconditions.checkNotNull(sessionHolder, "sessionHolder");
 		this.jobRegistryPath = Preconditions.checkNotNull(jobRegistryPath, "jobRegistryPath");
 		Preconditions.checkArgument(jobRegistryPath.endsWith("/"), "jobRegistryPath must end with /");
+		this.consulMetricService = consulMetricService;
 	}
 
 	@Override
@@ -83,7 +88,9 @@ public final class ConsulRunningJobsRegistry implements JobResultStore {
 		}
 		jobList.add(jobID.toString());
 		String jobIdsAsString = String.join(COMMA_SEPARATOR, jobList);
+		LocalDateTime startTime = LocalDateTime.now();
 		Boolean jobStatusStorageResult = client.get().setKVValue(path(status), jobIdsAsString, params).getValue();
+		setMetricValues(startTime);
 		if (jobStatusStorageResult == null || !jobStatusStorageResult) {
 			throw new IllegalStateException(format("Failed to store JobStatus({0}) for JobID: {1}", status, jobID));
 		}
@@ -94,7 +101,9 @@ public final class ConsulRunningJobsRegistry implements JobResultStore {
 	}
 
 	private Set<String> getJobResultEntries(JobStatus jobStatus) {
+		LocalDateTime startTime = LocalDateTime.now();
 		GetValue value = client.get().getKVValue(path(jobStatus)).getValue();
+		setMetricValues(startTime);
 		if (value == null) {
 			return Collections.emptySet();
 		}
@@ -113,5 +122,12 @@ public final class ConsulRunningJobsRegistry implements JobResultStore {
             return Collections.emptySet();
         }
 		return Arrays.stream(jobs.split(COMMA_SEPARATOR)).collect(Collectors.toSet());
+	}
+
+	private void setMetricValues(LocalDateTime requestStartTime) {
+		long durationTime = TimeUtils.getDurationTime(requestStartTime);
+    	if (consulMetricService != null) {
+    		this.consulMetricService.setMetricValues(durationTime);
+		}
 	}
 }

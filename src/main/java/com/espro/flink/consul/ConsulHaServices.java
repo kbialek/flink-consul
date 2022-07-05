@@ -25,8 +25,14 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.function.Supplier;
 
+import com.espro.flink.consul.metric.ConsulMetricGroup;
+import com.espro.flink.consul.metric.ConsulMetricService;
+import com.espro.flink.consul.metric.ConsulMetricServiceImpl;
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.configuration.JobManagerOptions;
+import org.apache.flink.core.plugin.PluginManager;
+import org.apache.flink.core.plugin.PluginUtils;
 import org.apache.flink.runtime.blob.BlobStore;
 import org.apache.flink.runtime.blob.BlobStoreService;
 import org.apache.flink.runtime.checkpoint.CheckpointRecoveryFactory;
@@ -43,6 +49,11 @@ import com.espro.flink.consul.jobgraph.ConsulSubmittedJobGraphStore;
 import com.espro.flink.consul.jobregistry.ConsulRunningJobsRegistry;
 import com.espro.flink.consul.leader.ConsulLeaderElectionService;
 import com.espro.flink.consul.leader.ConsulLeaderRetrievalService;
+import org.apache.flink.runtime.metrics.MetricRegistry;
+import org.apache.flink.runtime.metrics.MetricRegistryConfiguration;
+import org.apache.flink.runtime.metrics.MetricRegistryImpl;
+import org.apache.flink.runtime.metrics.ReporterSetup;
+import org.apache.flink.runtime.rpc.RpcSystem;
 
 /**
  * An implementation of {@link HighAvailabilityServices} using Hashicorp Consul.
@@ -86,27 +97,35 @@ public class ConsulHaServices implements HighAvailabilityServices {
 
 	private final ConsulSessionActivator consulSessionActivator;
 
+	private final ConsulMetricService consulMetricService;
+
     public ConsulHaServices(Executor executor,
 							Configuration configuration,
 							BlobStoreService blobStoreService) {
+
+		MetricRegistry metricRegistry = createMetricRegistry(configuration);
+		ConsulMetricGroup consulMetricGroup = new ConsulMetricGroup(metricRegistry, configuration.getString(JobManagerOptions.BIND_HOST));
+		this.consulMetricService = new ConsulMetricServiceImpl(metricRegistry, consulMetricGroup);
+
+		this.consulMetricService.registerDefaultMetrics();
         this.clientProvider = () -> ConsulClientFactory.createConsulClient(configuration);
 		this.executor = Executors.newCachedThreadPool();
 		this.configuration = checkNotNull(configuration);
 
 		this.blobStore = checkNotNull(blobStoreService);
 
-        this.consulSessionActivator = new ConsulSessionActivator(clientProvider, 10);
+        this.consulSessionActivator = new ConsulSessionActivator(clientProvider, 10, consulMetricService);
 		this.consulSessionActivator.start();
 
-        this.runningJobsRegistry = new ConsulRunningJobsRegistry(() -> ConsulClientFactory.createConsulClient(configuration),
-                consulSessionActivator.getHolder(), jobStatusPath());
+		this.runningJobsRegistry = new ConsulRunningJobsRegistry(() -> ConsulClientFactory.createConsulClient(configuration),
+                consulSessionActivator.getHolder(), jobStatusPath(), consulMetricService);
 	}
 
 
 	@Override
 	public LeaderRetrievalService getJobManagerLeaderRetriever(JobID jobID) {
 		String leaderPath = getJobManagerLeaderPath(jobID);
-		return new ConsulLeaderRetrievalService(clientProvider, executor, leaderPath);
+		return new ConsulLeaderRetrievalService(clientProvider, executor, leaderPath, consulMetricService);
 	}
 
 	@Override
@@ -117,50 +136,50 @@ public class ConsulHaServices implements HighAvailabilityServices {
 	@Override
 	public LeaderElectionService getJobManagerLeaderElectionService(JobID jobID) {
 		String leaderPath = getJobManagerLeaderPath(jobID);
-		return new ConsulLeaderElectionService(clientProvider, executor, consulSessionActivator.getHolder(), leaderPath);
+		return new ConsulLeaderElectionService(clientProvider, executor, consulSessionActivator.getHolder(), leaderPath, consulMetricService);
 	}
 
 	@Override
 	public LeaderRetrievalService getResourceManagerLeaderRetriever() {
-		return new ConsulLeaderRetrievalService(clientProvider, executor, getLeaderPath() + RESOURCE_MANAGER_LEADER_PATH);
+		return new ConsulLeaderRetrievalService(clientProvider, executor, getLeaderPath() + RESOURCE_MANAGER_LEADER_PATH, consulMetricService);
 	}
 
 	@Override
 	public LeaderElectionService getResourceManagerLeaderElectionService() {
 		return new ConsulLeaderElectionService(clientProvider, executor, consulSessionActivator.getHolder(),
-			getLeaderPath() + RESOURCE_MANAGER_LEADER_PATH);
+			getLeaderPath() + RESOURCE_MANAGER_LEADER_PATH, consulMetricService);
 	}
 
 	@Override
 	public LeaderRetrievalService getDispatcherLeaderRetriever() {
-		return new ConsulLeaderRetrievalService(clientProvider, executor, getLeaderPath() + DISPATCHER_LEADER_PATH);
+		return new ConsulLeaderRetrievalService(clientProvider, executor, getLeaderPath() + DISPATCHER_LEADER_PATH, consulMetricService);
 	}
 
 	@Override
 	public LeaderElectionService getDispatcherLeaderElectionService() {
 		return new ConsulLeaderElectionService(clientProvider, executor, consulSessionActivator.getHolder(),
-			getLeaderPath() + DISPATCHER_LEADER_PATH);
+			getLeaderPath() + DISPATCHER_LEADER_PATH, consulMetricService);
 	}
 
 	@Override
 	public CheckpointRecoveryFactory getCheckpointRecoveryFactory() {
-        return new ConsulCheckpointRecoveryFactory(clientProvider, configuration, executor);
+        return new ConsulCheckpointRecoveryFactory(clientProvider, configuration, executor, consulMetricService);
 	}
 
 	@Override
     public LeaderRetrievalService getClusterRestEndpointLeaderRetriever() {
-        return new ConsulLeaderRetrievalService(clientProvider, executor, getLeaderPath() + REST_SERVER_LEADER_PATH);
+        return new ConsulLeaderRetrievalService(clientProvider, executor, getLeaderPath() + REST_SERVER_LEADER_PATH, consulMetricService);
     }
 
     @Override
     public LeaderElectionService getClusterRestEndpointLeaderElectionService() {
         return new ConsulLeaderElectionService(clientProvider, executor, consulSessionActivator.getHolder(),
-                getLeaderPath() + REST_SERVER_LEADER_PATH);
+                getLeaderPath() + REST_SERVER_LEADER_PATH, consulMetricService);
     }
 
     @Override
     public JobGraphStore getJobGraphStore() throws Exception {
-        return new ConsulSubmittedJobGraphStore(configuration, clientProvider, jobGraphsPath());
+        return new ConsulSubmittedJobGraphStore(configuration, clientProvider, jobGraphsPath(), consulMetricService);
 	}
 
 	@Override
@@ -200,5 +219,15 @@ public class ConsulHaServices implements HighAvailabilityServices {
 	private String jobGraphsPath() {
 		return configuration.getString(ConsulHighAvailabilityOptions.HA_CONSUL_ROOT)
 			+ configuration.getString(ConsulHighAvailabilityOptions.HA_CONSUL_JOBGRAPHS_PATH);
+	}
+
+	private MetricRegistry createMetricRegistry(Configuration configuration) {
+		RpcSystem rpcSystem = RpcSystem.load(configuration);
+		PluginManager pluginManager =
+				PluginUtils.createPluginManagerFromRootFolder(configuration);
+		return new MetricRegistryImpl(
+				MetricRegistryConfiguration.fromConfiguration(
+						configuration, rpcSystem.getMaximumMessageSizeInBytes(configuration)),
+				ReporterSetup.fromConfiguration(configuration, pluginManager));
 	}
 }

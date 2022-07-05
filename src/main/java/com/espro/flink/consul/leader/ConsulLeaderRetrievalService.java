@@ -21,6 +21,7 @@ package com.espro.flink.consul.leader;
 import java.util.concurrent.Executor;
 import java.util.function.Supplier;
 
+import com.espro.flink.consul.metric.ConsulMetricService;
 import org.apache.flink.runtime.leaderretrieval.LeaderRetrievalListener;
 import org.apache.flink.runtime.leaderretrieval.LeaderRetrievalService;
 import org.apache.flink.util.Preconditions;
@@ -34,22 +35,25 @@ public final class ConsulLeaderRetrievalService implements LeaderRetrievalServic
     private final Supplier<ConsulClient> clientProvider;
 	private final Executor executor;
 	private final String leaderKey;
+	private final ConsulMetricService consulMetricService;
 
 	private ConsulLeaderRetriever leaderRetriever;
 
     public ConsulLeaderRetrievalService(Supplier<ConsulClient> clientProvider,
 										Executor executor,
-										String leaderKey) {
+										String leaderKey,
+										ConsulMetricService consulMetricService) {
 		this.clientProvider = Preconditions.checkNotNull(clientProvider, "client");
 		this.executor = Preconditions.checkNotNull(executor, "executor");
 		this.leaderKey = Preconditions.checkNotNull(leaderKey, "leaderKey");
+		this.consulMetricService = consulMetricService;
 	}
 
 	@Override
 	public void start(LeaderRetrievalListener listener) throws Exception {
 		Preconditions.checkState(leaderRetriever == null, "ConsulLeaderRetrievalService is already started");
 		synchronized (lock) {
-			this.leaderRetriever = new ConsulLeaderRetriever(clientProvider, executor, leaderKey, listener, 10);
+			this.leaderRetriever = new ConsulLeaderRetriever(clientProvider, executor, leaderKey, listener, 10, consulMetricService);
 			this.leaderRetriever.start();
 		}
 	}

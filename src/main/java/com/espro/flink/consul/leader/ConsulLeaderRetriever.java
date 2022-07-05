@@ -18,9 +18,12 @@
 
 package com.espro.flink.consul.leader;
 
+import java.time.LocalDateTime;
 import java.util.concurrent.Executor;
 import java.util.function.Supplier;
 
+import com.espro.flink.consul.metric.ConsulMetricService;
+import com.espro.flink.consul.utils.TimeUtils;
 import org.apache.flink.runtime.leaderretrieval.LeaderRetrievalListener;
 import org.apache.flink.util.Preconditions;
 import org.slf4j.Logger;
@@ -51,6 +54,8 @@ final class ConsulLeaderRetriever {
 
 	private final int waitTime;
 
+	private final ConsulMetricService consulMetricService;
+
 	/**
      * @param clientProvider provides a Consul client
      * @param executor Executor to run background tasks
@@ -61,12 +66,14 @@ final class ConsulLeaderRetriever {
 								 Executor executor,
 								 String leaderKey,
 								 LeaderRetrievalListener listener,
-								 int waitTime) {
+								 int waitTime,
+								 ConsulMetricService consulMetricService) {
         this.clientProvider = Preconditions.checkNotNull(clientProvider, "client");
 		this.executor = Preconditions.checkNotNull(executor, "executor");
 		this.leaderKey = Preconditions.checkNotNull(leaderKey, "leaderKey");
 		this.listener = Preconditions.checkNotNull(listener, "listener");
 		this.waitTime = waitTime;
+		this.consulMetricService = consulMetricService;
 	}
 
 	public void start() {
@@ -110,7 +117,9 @@ final class ConsulLeaderRetriever {
 			.setIndex(leaderKeyIndex)
 			.setWaitTime(waitTime)
 			.build();
-        Response<GetBinaryValue> leaderKeyValue = clientProvider.get().getKVBinaryValue(leaderKey, queryParams);
+		LocalDateTime startTime = LocalDateTime.now();
+		Response<GetBinaryValue> leaderKeyValue = clientProvider.get().getKVBinaryValue(leaderKey, queryParams);
+		setMetricValues(startTime);
 		return leaderKeyValue.getValue();
 	}
 
@@ -130,4 +139,10 @@ final class ConsulLeaderRetriever {
 		}
 	}
 
+	private void setMetricValues(LocalDateTime requestStartTime) {
+		long durationTime = TimeUtils.getDurationTime(requestStartTime);
+		if (consulMetricService != null) {
+			this.consulMetricService.setMetricValues(durationTime);
+		}
+	}
 }

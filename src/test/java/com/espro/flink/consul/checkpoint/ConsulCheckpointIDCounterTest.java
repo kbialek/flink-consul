@@ -5,6 +5,7 @@ import static org.junit.Assert.assertEquals;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
+import com.espro.flink.consul.metric.ConsulMetricServiceImpl;
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.api.common.JobStatus;
 import org.junit.Before;
@@ -26,7 +27,7 @@ public class ConsulCheckpointIDCounterTest extends AbstractConsulTest {
 	@Test
 	public void testGetAndIncrement() throws Exception {
 		JobID jobID = JobID.generate();
-        ConsulCheckpointIDCounter counter = new ConsulCheckpointIDCounter(() -> client, countersPath, jobID);
+        ConsulCheckpointIDCounter counter = new ConsulCheckpointIDCounter(() -> client, countersPath, jobID, null);
 		counter.start();
 		assertEquals(0, counter.getAndIncrement());
 		assertEquals(1, counter.getAndIncrement());
@@ -36,7 +37,7 @@ public class ConsulCheckpointIDCounterTest extends AbstractConsulTest {
 	@Test
 	public void testSetCount() throws Exception {
 		JobID jobID = JobID.generate();
-        ConsulCheckpointIDCounter counter = new ConsulCheckpointIDCounter(() -> client, countersPath, jobID);
+        ConsulCheckpointIDCounter counter = new ConsulCheckpointIDCounter(() -> client, countersPath, jobID, null);
 		counter.start();
 		counter.setCount(3);
 		assertEquals(3, counter.getAndIncrement());
@@ -46,8 +47,8 @@ public class ConsulCheckpointIDCounterTest extends AbstractConsulTest {
 	@Test
 	public void testSharedAccess() throws Exception {
 		JobID jobID = JobID.generate();
-        ConsulCheckpointIDCounter counter1 = new ConsulCheckpointIDCounter(() -> client, countersPath, jobID);
-        ConsulCheckpointIDCounter counter2 = new ConsulCheckpointIDCounter(() -> client, countersPath, jobID);
+        ConsulCheckpointIDCounter counter1 = new ConsulCheckpointIDCounter(() -> client, countersPath, jobID, null);
+        ConsulCheckpointIDCounter counter2 = new ConsulCheckpointIDCounter(() -> client, countersPath, jobID, null);
 
 		counter1.start();
 		counter2.start();
@@ -63,8 +64,8 @@ public class ConsulCheckpointIDCounterTest extends AbstractConsulTest {
 	@Test
 	public void testConcurrentAccess() throws Exception {
 		JobID jobID = JobID.generate();
-        ConsulCheckpointIDCounter counter1 = new ConsulCheckpointIDCounter(() -> client, countersPath, jobID);
-        ConsulCheckpointIDCounter counter2 = new ConsulCheckpointIDCounter(() -> client, countersPath, jobID);
+        ConsulCheckpointIDCounter counter1 = new ConsulCheckpointIDCounter(() -> client, countersPath, jobID, null);
+        ConsulCheckpointIDCounter counter2 = new ConsulCheckpointIDCounter(() -> client, countersPath, jobID, null);
 
 		counter1.start();
 		counter2.start();
@@ -106,7 +107,7 @@ public class ConsulCheckpointIDCounterTest extends AbstractConsulTest {
 	@Test
 	public void testStop() throws Exception {
 		JobID jobID = JobID.generate();
-        ConsulCheckpointIDCounter counter = new ConsulCheckpointIDCounter(() -> client, countersPath, jobID);
+        ConsulCheckpointIDCounter counter = new ConsulCheckpointIDCounter(() -> client, countersPath, jobID, null);
 		counter.start();
 		counter.getAndIncrement();
 		counter.getAndIncrement();

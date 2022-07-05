@@ -1,6 +1,7 @@
 package com.espro.flink.consul.jobgraph;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -10,6 +11,8 @@ import java.util.concurrent.Executor;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import com.espro.flink.consul.metric.ConsulMetricService;
+import com.espro.flink.consul.utils.TimeUtils;
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.runtime.highavailability.HighAvailabilityServicesUtils;
@@ -45,14 +48,16 @@ public final class ConsulSubmittedJobGraphStore implements JobGraphStore {
 	private final String jobgraphsPath;
     private final RetrievableStateStorageHelper<JobGraph> jobGraphStateStorage;
     private JobGraphListener listener;
+    private final ConsulMetricService consulMetricService;
 
-    public ConsulSubmittedJobGraphStore(Configuration configuration, Supplier<ConsulClient> client, String jobgraphsPath)
+    public ConsulSubmittedJobGraphStore(Configuration configuration, Supplier<ConsulClient> client, String jobgraphsPath, ConsulMetricService consulMetricService)
             throws IOException {
 		this.client = Preconditions.checkNotNull(client, "client");
 		this.jobgraphsPath = Preconditions.checkNotNull(jobgraphsPath, "jobgraphsPath");
         Preconditions.checkArgument(jobgraphsPath.endsWith("/"), "jobgraphsPath must end with /");
         this.jobGraphStateStorage = new FileSystemStateStorageHelper<>(
                 HighAvailabilityServicesUtils.getClusterHighAvailableStoragePath(configuration), "jobGraph");
+        this.consulMetricService = consulMetricService;
 	}
 
 	@Override
@@ -75,7 +80,9 @@ public final class ConsulSubmittedJobGraphStore implements JobGraphStore {
             // smaller than the state itself.
             byte[] bytes = InstantiationUtil.serializeObject(stateHandle);
             LOG.debug("{} bytes will be written to Consul.", bytes.length);
+            LocalDateTime startTime = LocalDateTime.now();
             Boolean response = client.get().setKVBinaryValue(path(jobGraph.getJobID()), bytes).getValue();
+            setMetricValues(startTime);
             success = response == null ? false : response;
         } finally {
             // Cleanup the state handle if it was not written to Consul
@@ -127,7 +134,9 @@ public final class ConsulSubmittedJobGraphStore implements JobGraphStore {
     }
 
     private RetrievableStateHandle<JobGraph> getStateHandle(JobID jobId) throws FlinkException {
+        LocalDateTime startTime = LocalDateTime.now();
         GetBinaryValue value = client.get().getKVBinaryValue(path(jobId)).getValue();
+        setMetricValues(startTime);
 		if (value != null) {
 			try {
                 return InstantiationUtil.deserializeObject(value.getValue(),
@@ -148,8 +157,10 @@ public final class ConsulSubmittedJobGraphStore implements JobGraphStore {
             LOG.warn("Could not retrieve the state handle from Consul {}.", path(jobId), e);
         }
 
+        LocalDateTime startTime = LocalDateTime.now();
         // First remove state from Consul (Independent of errors when reading the state handler)
         client.get().deleteKVValue(path(jobId));
+        setMetricValues(startTime);
 
         if (stateHandle != null) {
             stateHandle.discardState();
@@ -160,7 +171,9 @@ public final class ConsulSubmittedJobGraphStore implements JobGraphStore {
 
 	@Override
 	public Collection<JobID> getJobIds() throws Exception {
+        LocalDateTime startTime = LocalDateTime.now();
         List<String> value = client.get().getKVKeysOnly(jobgraphsPath).getValue();
+        setMetricValues(startTime);
 		if (value != null) {
 			return value.stream()
 				.map(id -> id.split("/"))
@@ -173,4 +186,11 @@ public final class ConsulSubmittedJobGraphStore implements JobGraphStore {
 	private String path(JobID jobID) {
 		return jobgraphsPath + jobID.toString();
 	}
+
+    private void setMetricValues(LocalDateTime requestStartTime) {
+        long durationTime = TimeUtils.getDurationTime(requestStartTime);
+        if (consulMetricService != null) {
+            this.consulMetricService.setMetricValues(durationTime);
+        }
+    }
 }
